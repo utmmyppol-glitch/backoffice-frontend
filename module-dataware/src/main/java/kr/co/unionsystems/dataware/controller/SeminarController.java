@@ -2,8 +2,8 @@ package kr.co.unionsystems.dataware.controller;
 
 import jakarta.validation.Valid;
 import kr.co.unionsystems.dataware.dto.SeminarRequest;
-import kr.co.unionsystems.dataware.entity.Seminar;
-import kr.co.unionsystems.dataware.repository.SeminarRepository;
+import kr.co.unionsystems.dataware.dto.SeminarResponse;
+import kr.co.unionsystems.dataware.service.SeminarService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -19,36 +19,19 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class SeminarController {
 
-    private final SeminarRepository seminarRepository;
+    private final SeminarService seminarService;
 
     @PostMapping
     public ResponseEntity<Map<String, Object>> submitSeminarRequest(
             @Valid @RequestBody SeminarRequest request) {
-        Seminar seminar = Seminar.builder()
-                .name(request.getName())
-                .company(request.getCompany())
-                .phone(request.getPhone())
-                .email(request.getEmail())
-                .department(request.getDepartment())
-                .preferredDate(request.getPreferredDate())
-                .attendees(request.getAttendees())
-                .topic(request.getTopic())
-                .note(request.getNote())
-                .consentPrivacy(request.getConsentPrivacy())
-                .consentThirdParty(request.getConsentThirdParty())
-                .build();
-
-        Seminar saved = seminarRepository.save(seminar);
+        var saved = seminarService.submitSeminar(request);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(Map.of(
-                        "message", "방문 세미나 신청이 완료되었습니다",
-                        "id", saved.getId()
-                ));
+                .body(Map.of("message", "방문 세미나 신청이 완료되었습니다", "id", saved.getId()));
     }
 
     @GetMapping
-    public ResponseEntity<Page<Seminar>> getSeminars(
+    public ResponseEntity<Page<SeminarResponse>> getSeminars(
             @PageableDefault(size = 20) Pageable pageable) {
-        return ResponseEntity.ok(seminarRepository.findAllByOrderByCreatedAtDesc(pageable));
+        return ResponseEntity.ok(seminarService.getSeminars(pageable));
     }
 }

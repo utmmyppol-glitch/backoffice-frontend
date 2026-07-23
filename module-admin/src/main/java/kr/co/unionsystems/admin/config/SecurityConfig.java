@@ -28,8 +28,6 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Actuator
                         .requestMatchers("/actuator/health", "/actuator/info").permitAll()
-                        // WebSocket
-                        .requestMatchers("/ws/**").permitAll()
                         // Allow CORS preflight requests
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
@@ -38,7 +36,6 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/union/customer-stories/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/union/banners/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/union/client-logos/**").permitAll()
-                        .requestMatchers("/api/union/chat/**").permitAll()
                         // module-union public POST
                         .requestMatchers(HttpMethod.POST, "/api/union/inquiries").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/union/downloads").permitAll()
@@ -88,7 +85,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/admin/login").permitAll()
                         .requestMatchers("/api/admin/**").authenticated()
 
-                        .anyRequest().permitAll()
+                        .anyRequest().authenticated()
                 )
                 .httpBasic(AbstractHttpConfigurer::disable);
 

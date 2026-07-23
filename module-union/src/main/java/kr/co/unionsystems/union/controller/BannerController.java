@@ -1,8 +1,9 @@
 package kr.co.unionsystems.union.controller;
 
+import jakarta.validation.Valid;
+import kr.co.unionsystems.union.dto.BannerRequest;
 import kr.co.unionsystems.union.entity.Banner;
-import kr.co.unionsystems.union.entity.Banner.BannerPosition;
-import kr.co.unionsystems.union.repository.BannerRepository;
+import kr.co.unionsystems.union.service.BannerService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,22 +16,16 @@ import java.util.List;
 @RequiredArgsConstructor
 public class BannerController {
 
-    private final BannerRepository bannerRepository;
+    private final BannerService bannerService;
 
     @GetMapping
     public ResponseEntity<List<Banner>> getBanners(
             @RequestParam(required = false) String position) {
-        if (position != null && !position.isEmpty()) {
-            BannerPosition bannerPosition = BannerPosition.valueOf(position.toUpperCase());
-            return ResponseEntity.ok(
-                    bannerRepository.findByPositionAndIsActiveTrueOrderBySortOrderAsc(bannerPosition));
-        }
-        return ResponseEntity.ok(bannerRepository.findByIsActiveTrueOrderBySortOrderAsc());
+        return ResponseEntity.ok(bannerService.getBanners(position));
     }
 
     @PostMapping
-    public ResponseEntity<Banner> createBanner(@RequestBody Banner banner) {
-        Banner saved = bannerRepository.save(banner);
-        return ResponseEntity.status(HttpStatus.CREATED).body(saved);
+    public ResponseEntity<Banner> createBanner(@Valid @RequestBody BannerRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(bannerService.createBanner(request));
     }
 }
