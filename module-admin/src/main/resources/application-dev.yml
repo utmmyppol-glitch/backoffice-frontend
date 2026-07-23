@@ -5,3 +5,6 @@ spring:
 logging:
   level:
     kr.co.unionsystems: DEBUG
+
+cors:
+  allowed-origins: http://localhost:3000
