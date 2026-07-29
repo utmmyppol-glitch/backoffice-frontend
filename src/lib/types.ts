@@ -91,6 +91,74 @@ export interface CustomerStory {
   updated_at: string;
 }
 
+// ── 문의 ──
+export type InquiryStatus = "NEW" | "IN_PROGRESS" | "COMPLETED";
+
+export interface Inquiry {
+  id: number;
+  name: string;
+  company: string;
+  email: string;
+  phone: string;
+  product: string;
+  message: string;
+  privacy_agreed: boolean;
+  status: InquiryStatus;
+  assignee: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// ── 다운로드 이력 ──
+export interface Download {
+  id: number;
+  name: string;
+  company: string;
+  email: string;
+  phone: string;
+  resource_name: string;
+  privacy_agreed: boolean;
+  created_at: string;
+}
+
+// ── 교육 신청 (dataware 전용) ──
+export type EducationStatus = "NEW" | "CONFIRMED" | "COMPLETED" | "CANCELLED";
+
+export interface Education {
+  id: number;
+  name: string;
+  company: string;
+  email: string;
+  phone: string;
+  course_name: string;
+  preferred_date: string;
+  participants: number;
+  message: string;
+  privacy_agreed: boolean;
+  status: EducationStatus;
+  created_at: string;
+  updated_at: string;
+}
+
+// ── 세미나 신청 (dataware 전용) ──
+export type SeminarStatus = "NEW" | "CONFIRMED" | "COMPLETED" | "CANCELLED";
+
+export interface Seminar {
+  id: number;
+  name: string;
+  company: string;
+  email: string;
+  phone: string;
+  seminar_title: string;
+  seminar_date: string;
+  participants: number;
+  message: string;
+  privacy_agreed: boolean;
+  status: SeminarStatus;
+  created_at: string;
+  updated_at: string;
+}
+
 // ── 제품 (dataware 전용) ──
 export interface Product {
   id: number;

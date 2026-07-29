@@ -1,4 +1,8 @@
+"use client";
+
 import Sidebar from "@/components/Sidebar";
+import { getUser } from "@/lib/auth";
+import { filterMenuForUser } from "@/lib/permissions";
 
 const datawareMenu = [
   { label: "대시보드", href: "/dataware/dashboard" },
@@ -20,9 +24,12 @@ export default function DatawareLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const user = getUser();
+  const filteredMenu = filterMenuForUser(user, "dataware", datawareMenu);
+
   return (
     <>
-      <Sidebar site="dataware" items={datawareMenu} />
+      <Sidebar site="dataware" items={filteredMenu} />
       <main className="flex-1 overflow-y-auto p-6">{children}</main>
     </>
   );

@@ -1,4 +1,8 @@
+"use client";
+
 import Sidebar from "@/components/Sidebar";
+import { getUser } from "@/lib/auth";
+import { filterMenuForUser } from "@/lib/permissions";
 
 const unionMenu = [
   { label: "대시보드", href: "/union/dashboard" },
@@ -17,9 +21,12 @@ export default function UnionLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const user = getUser();
+  const filteredMenu = filterMenuForUser(user, "union", unionMenu);
+
   return (
     <>
-      <Sidebar site="union" items={unionMenu} />
+      <Sidebar site="union" items={filteredMenu} />
       <main className="flex-1 overflow-y-auto p-6">{children}</main>
     </>
   );
