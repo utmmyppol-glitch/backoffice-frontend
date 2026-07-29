@@ -112,14 +112,26 @@ export default function MenuManager({ site }: MenuManagerProps) {
   }
 
   async function toggleExposed(item: MenuItem) {
+    const newVal = !item.isExposed;
+    // 즉시 UI 반영 (optimistic)
+    function updateTree(nodes: MenuItem[]): MenuItem[] {
+      return nodes.map((n) => {
+        if (n.id === item.id) return { ...n, isExposed: newVal };
+        if (n.children?.length) return { ...n, children: updateTree(n.children) };
+        return n;
+      });
+    }
+    setTree(updateTree(tree));
+
     try {
       await apiFetch(`/api/admin/${site}/menus/${item.id}`, {
         method: "PUT",
-        body: JSON.stringify({ name: item.name, url: item.url, menuType: item.menuType, parentId: item.parentId, isExposed: !item.isExposed }),
+        body: JSON.stringify({ name: item.name, url: item.url, menuType: item.menuType, parentId: item.parentId, isExposed: newVal }),
       });
-      fetchMenus();
+      toast("success", newVal ? "메뉴가 노출되었습니다" : "메뉴가 숨겨졌습니다");
     } catch (err) {
       toast("error", err instanceof ApiError ? err.message : "변경에 실패했습니다");
+      fetchMenus(); // 실패 시 원복
     }
   }
 
