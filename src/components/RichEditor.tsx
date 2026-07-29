@@ -1,0 +1,223 @@
+"use client";
+
+import { useEditor, EditorContent } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import Link from "@tiptap/extension-link";
+import Image from "@tiptap/extension-image";
+import { Table } from "@tiptap/extension-table";
+import { TableRow } from "@tiptap/extension-table-row";
+import { TableCell } from "@tiptap/extension-table-cell";
+import { TableHeader } from "@tiptap/extension-table-header";
+import Underline from "@tiptap/extension-underline";
+import { useState, useEffect, useCallback } from "react";
+
+interface RichEditorProps {
+  value: string;
+  onChange: (html: string) => void;
+}
+
+export default function RichEditor({ value, onChange }: RichEditorProps) {
+  const [sourceMode, setSourceMode] = useState(false);
+  const [sourceHtml, setSourceHtml] = useState(value);
+
+  const editor = useEditor({
+    extensions: [
+      StarterKit.configure({ heading: { levels: [1, 2, 3] } }),
+      Underline,
+      Link.configure({ openOnClick: false }),
+      Image,
+      Table.configure({ resizable: false }),
+      TableRow,
+      TableCell,
+      TableHeader,
+    ],
+    content: value,
+    onUpdate: ({ editor: ed }) => {
+      onChange(ed.getHTML());
+    },
+  });
+
+  // Sync external value changes
+  useEffect(() => {
+    if (editor && !editor.isFocused && value !== editor.getHTML()) {
+      editor.commands.setContent(value, { emitUpdate: false });
+    }
+  }, [value, editor]);
+
+  const toggleSource = useCallback(() => {
+    if (sourceMode) {
+      // source -> wysiwyg: apply edited HTML
+      editor?.commands.setContent(sourceHtml, { emitUpdate: false });
+      onChange(sourceHtml);
+      setSourceMode(false);
+    } else {
+      // wysiwyg -> source
+      setSourceHtml(editor?.getHTML() ?? "");
+      setSourceMode(true);
+    }
+  }, [sourceMode, sourceHtml, editor, onChange]);
+
+  const addLink = useCallback(() => {
+    const url = window.prompt("링크 URL을 입력하세요:");
+    if (!url || !editor) return;
+    editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
+  }, [editor]);
+
+  const addImage = useCallback(() => {
+    const url = window.prompt("이미지 URL을 입력하세요:");
+    if (!url || !editor) return;
+    editor.chain().focus().setImage({ src: url }).run();
+  }, [editor]);
+
+  const addTable = useCallback(() => {
+    if (!editor) return;
+    editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
+  }, [editor]);
+
+  if (!editor) return <div className="h-64 bg-gray-50 animate-pulse rounded-lg" />;
+
+  const Btn = ({
+    active,
+    onClick,
+    children,
+    title,
+  }: {
+    active?: boolean;
+    onClick: () => void;
+    children: React.ReactNode;
+    title?: string;
+  }) => (
+    <button
+      type="button"
+      onClick={onClick}
+      title={title}
+      className={`px-2 py-1 text-sm rounded transition-colors ${
+        active ? "bg-gray-800 text-white" : "bg-white text-gray-700 hover:bg-gray-100"
+      }`}
+    >
+      {children}
+    </button>
+  );
+
+  return (
+    <div className="border border-gray-300 rounded-lg overflow-hidden">
+      {/* Toolbar */}
+      <div className="flex flex-wrap items-center gap-1 px-2 py-1.5 bg-gray-50 border-b border-gray-300">
+        <Btn
+          active={editor.isActive("bold")}
+          onClick={() => editor.chain().focus().toggleBold().run()}
+          title="굵게"
+        >
+          <b>B</b>
+        </Btn>
+        <Btn
+          active={editor.isActive("italic")}
+          onClick={() => editor.chain().focus().toggleItalic().run()}
+          title="기울임"
+        >
+          <i>I</i>
+        </Btn>
+        <Btn
+          active={editor.isActive("underline")}
+          onClick={() => editor.chain().focus().toggleUnderline().run()}
+          title="밑줄"
+        >
+          <u>U</u>
+        </Btn>
+        <Btn
+          active={editor.isActive("strike")}
+          onClick={() => editor.chain().focus().toggleStrike().run()}
+          title="취소선"
+        >
+          <s>S</s>
+        </Btn>
+
+        <span className="w-px h-5 bg-gray-300 mx-1" />
+
+        <Btn
+          active={editor.isActive("heading", { level: 1 })}
+          onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+          title="제목 1"
+        >
+          H1
+        </Btn>
+        <Btn
+          active={editor.isActive("heading", { level: 2 })}
+          onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+          title="제목 2"
+        >
+          H2
+        </Btn>
+        <Btn
+          active={editor.isActive("heading", { level: 3 })}
+          onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+          title="제목 3"
+        >
+          H3
+        </Btn>
+
+        <span className="w-px h-5 bg-gray-300 mx-1" />
+
+        <Btn
+          active={editor.isActive("bulletList")}
+          onClick={() => editor.chain().focus().toggleBulletList().run()}
+          title="글머리 목록"
+        >
+          &bull; 목록
+        </Btn>
+        <Btn
+          active={editor.isActive("orderedList")}
+          onClick={() => editor.chain().focus().toggleOrderedList().run()}
+          title="번호 목록"
+        >
+          1. 목록
+        </Btn>
+        <Btn
+          active={editor.isActive("blockquote")}
+          onClick={() => editor.chain().focus().toggleBlockquote().run()}
+          title="인용"
+        >
+          &ldquo; 인용
+        </Btn>
+
+        <span className="w-px h-5 bg-gray-300 mx-1" />
+
+        <Btn onClick={addLink} active={editor.isActive("link")} title="링크">
+          링크
+        </Btn>
+        <Btn onClick={addImage} title="이미지">
+          이미지
+        </Btn>
+        <Btn onClick={addTable} title="표 삽입">
+          표
+        </Btn>
+
+        <span className="w-px h-5 bg-gray-300 mx-1" />
+
+        <Btn
+          onClick={() => editor.chain().focus().setHorizontalRule().run()}
+          title="구분선"
+        >
+          ─
+        </Btn>
+
+        <div className="ml-auto">
+          <Btn active={sourceMode} onClick={toggleSource} title="소스보기(HTML)">
+            &lt;/&gt; HTML
+          </Btn>
+        </div>
+      </div>
+
+      {/* Editor / Source */}
+      {sourceMode ? (
+        <textarea
+          className="w-full h-80 p-4 font-mono text-sm text-gray-800 resize-y focus:outline-none"
+          value={sourceHtml}
+          onChange={(e) => setSourceHtml(e.target.value)}
+        />
+      ) : (
+        <EditorContent editor={editor} className="rich-editor-content" />
+      )}
+    </div>
+  );
+}

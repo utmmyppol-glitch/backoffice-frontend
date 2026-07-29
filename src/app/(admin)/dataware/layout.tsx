@@ -1,0 +1,29 @@
+import Sidebar from "@/components/Sidebar";
+
+const datawareMenu = [
+  { label: "대시보드", href: "/dataware/dashboard" },
+  { label: "메뉴 관리", href: "/dataware/menus" },
+  { label: "콘텐츠 편집", href: "/dataware/contents" },
+  { label: "게시글 관리", href: "/dataware/posts" },
+  { label: "배너 관리", href: "/dataware/banners" },
+  { label: "고객사 로고", href: "/dataware/client-logos" },
+  { label: "고객 사례", href: "/dataware/customer-stories" },
+  { label: "제품 관리", href: "/dataware/products" },
+  { label: "문의 관리", href: "/dataware/inquiries" },
+  { label: "다운로드 조회", href: "/dataware/downloads" },
+  { label: "교육 신청", href: "/dataware/educations" },
+  { label: "세미나 신청", href: "/dataware/seminars" },
+];
+
+export default function DatawareLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <>
+      <Sidebar site="dataware" items={datawareMenu} />
+      <main className="flex-1 overflow-y-auto p-6">{children}</main>
+    </>
+  );
+}
