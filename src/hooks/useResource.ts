@@ -48,9 +48,14 @@ export default function useResource<T extends { id: number }>({
         page_size: String(pageSize),
       });
       if (searchQuery) params.set("search", searchQuery);
-      const res = await apiFetch<PaginatedResponse<T>>(`${basePath}?${params}`);
-      setItems(res.content);
-      setTotal(res.totalElements);
+      const res = await apiFetch<PaginatedResponse<T> | T[]>(`${basePath}?${params}`);
+      if (Array.isArray(res)) {
+        setItems(res);
+        setTotal(res.length);
+      } else {
+        setItems(res.content);
+        setTotal(res.totalElements);
+      }
     } catch (err) {
       toast(
         "error",

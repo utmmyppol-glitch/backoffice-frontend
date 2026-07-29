@@ -44,8 +44,7 @@ export default function SeminarManager() {
       const res = await apiFetch<PaginatedResponse<Seminar>>(
         `/api/admin/${site}/seminars?${params}`
       );
-      setData(res.content);
-      setTotal(res.totalElements);
+      if (Array.isArray(res)) { setData(res); setTotal(res.length); } else { setData(res.content); setTotal(res.totalElements); }
     } catch (err) {
       toast("error", err instanceof ApiError ? err.message : "세미나 신청을 불러오지 못했습니다");
     } finally {
