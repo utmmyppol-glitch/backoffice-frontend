@@ -23,7 +23,7 @@ export default function DownloadViewer({ site }: DownloadViewerProps) {
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      const params = new URLSearchParams({ page: String(page), page_size: String(pageSize) });
+      const params = new URLSearchParams({ page: String(page - 1), size: String(pageSize) });
       if (searchQuery) params.set("search", searchQuery);
       const res = await apiFetch<PaginatedResponse<Download>>(
         `/api/admin/${site}/downloads?${params}`

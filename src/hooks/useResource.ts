@@ -44,8 +44,8 @@ export default function useResource<T extends { id: number }>({
     try {
       setLoading(true);
       const params = new URLSearchParams({
-        page: String(page),
-        page_size: String(pageSize),
+        page: String(page - 1),
+        size: String(pageSize),
       });
       if (searchQuery) params.set("search", searchQuery);
       const res = await apiFetch<PaginatedResponse<T> | T[]>(`${basePath}?${params}`);
