@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { apiFetch, ApiError } from "@/lib/api";
-import { Product, PaginatedResponse } from "@/lib/types";
+import { useState } from "react";
+import { Product } from "@/lib/types";
+import useResource from "@/hooks/useResource";
 import DataTable, { Column } from "./DataTable";
 import Modal from "./Modal";
 import ToggleSwitch from "./ToggleSwitch";
-import { useToast } from "./Toast";
 import dynamic from "next/dynamic";
 
 const RichEditor = dynamic(() => import("./RichEditor"), { ssr: false });
@@ -29,47 +28,13 @@ const emptyForm: ProductForm = {
 };
 
 export default function ProductManager() {
-  const site = "dataware";
-  const { toast } = useToast();
-  const [data, setData] = useState<Product[]>([]);
-  const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [loading, setLoading] = useState(true);
-
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editing, setEditing] = useState<Product | null>(null);
+  const res = useResource<Product>({ endpoint: "products", site: "dataware", entityName: "제품" });
   const [form, setForm] = useState<ProductForm>(emptyForm);
-  const [saving, setSaving] = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
   const [featureInput, setFeatureInput] = useState("");
 
-  const pageSize = 15;
-
-  const fetchData = useCallback(async () => {
-    try {
-      setLoading(true);
-      const params = new URLSearchParams({ page: String(page), page_size: String(pageSize) });
-      if (searchQuery) params.set("search", searchQuery);
-      const res = await apiFetch<PaginatedResponse<Product>>(
-        `/api/admin/${site}/products?${params}`
-      );
-      setData(res.items);
-      setTotal(res.total);
-    } catch (err) {
-      toast("error", err instanceof ApiError ? err.message : "제품을 불러오지 못했습니다");
-    } finally {
-      setLoading(false);
-    }
-  }, [page, searchQuery, toast]);
-
-  useEffect(() => { fetchData(); }, [fetchData]);
-
-  function openAdd() { setEditing(null); setForm(emptyForm); setFeatureInput(""); setModalOpen(true); }
+  function openAdd() { setForm(emptyForm); setFeatureInput(""); res.openAdd(); }
 
   function openEdit(item: Product) {
-    setEditing(item);
     setForm({
       name: item.name, slug: item.slug, subtitle: item.subtitle || "",
       category: item.category, description_html: item.description_html,
@@ -77,7 +42,7 @@ export default function ProductManager() {
       sort_order: item.sort_order, published: item.published,
     });
     setFeatureInput("");
-    setModalOpen(true);
+    res.openEdit(item);
   }
 
   function addFeature() {
@@ -92,51 +57,8 @@ export default function ProductManager() {
   }
 
   async function handleSave() {
-    if (!form.name.trim()) { toast("error", "제품명을 입력하세요"); return; }
-    if (!form.slug.trim()) { toast("error", "Slug를 입력하세요"); return; }
-    try {
-      setSaving(true);
-      if (editing) {
-        await apiFetch(`/api/admin/${site}/products/${editing.id}`, {
-          method: "PUT", body: JSON.stringify(form),
-        });
-        toast("success", "제품이 수정되었습니다");
-      } else {
-        await apiFetch(`/api/admin/${site}/products`, {
-          method: "POST", body: JSON.stringify(form),
-        });
-        toast("success", "제품이 추가되었습니다");
-      }
-      setModalOpen(false);
-      fetchData();
-    } catch (err) {
-      toast("error", err instanceof ApiError ? err.message : "저장에 실패했습니다");
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function handleDelete() {
-    if (!deleteTarget) return;
-    try {
-      await apiFetch(`/api/admin/${site}/products/${deleteTarget.id}`, { method: "DELETE" });
-      toast("success", "제품이 삭제되었습니다");
-      setDeleteTarget(null);
-      fetchData();
-    } catch (err) {
-      toast("error", err instanceof ApiError ? err.message : "삭제에 실패했습니다");
-    }
-  }
-
-  async function togglePublished(item: Product) {
-    try {
-      await apiFetch(`/api/admin/${site}/products/${item.id}`, {
-        method: "PUT", body: JSON.stringify({ published: !item.published }),
-      });
-      fetchData();
-    } catch (err) {
-      toast("error", err instanceof ApiError ? err.message : "변경에 실패했습니다");
-    }
+    if (!form.name.trim() || !form.slug.trim()) return;
+    await res.save(res.editing?.id ?? null, form);
   }
 
   const columns: Column<Product>[] = [
@@ -144,9 +66,7 @@ export default function ProductManager() {
       key: "name", label: "제품명",
       render: (item) => (
         <div>
-          <button onClick={() => openEdit(item)} className="text-blue-600 hover:underline font-medium text-left">
-            {item.name}
-          </button>
+          <button onClick={() => openEdit(item)} className="text-blue-600 hover:underline font-medium text-left">{item.name}</button>
           {item.subtitle && <div className="text-xs text-gray-400 mt-0.5">{item.subtitle}</div>}
         </div>
       ),
@@ -156,14 +76,14 @@ export default function ProductManager() {
     { key: "sort_order", label: "순서", width: "70px", render: (item) => item.sort_order },
     {
       key: "published", label: "노출", width: "80px",
-      render: (item) => <ToggleSwitch checked={item.published} onChange={() => togglePublished(item)} />,
+      render: (item) => <ToggleSwitch checked={item.published} onChange={() => res.patch(item.id, { published: !item.published })} />,
     },
     {
       key: "actions", label: "", width: "100px",
       render: (item) => (
         <div className="flex gap-1">
           <button onClick={() => openEdit(item)} className="px-2 py-1 text-xs text-gray-600 hover:bg-gray-100 rounded">수정</button>
-          <button onClick={() => setDeleteTarget(item)} className="px-2 py-1 text-xs text-red-600 hover:bg-red-50 rounded">삭제</button>
+          <button onClick={() => res.setDeleteTarget(item)} className="px-2 py-1 text-xs text-red-600 hover:bg-red-50 rounded">삭제</button>
         </div>
       ),
     },
@@ -173,13 +93,12 @@ export default function ProductManager() {
     <>
       <DataTable
         title="제품 관리" description="제품 정보를 등록하고 관리합니다"
-        columns={columns} data={data} total={total} page={page} pageSize={pageSize}
-        onPageChange={setPage} searchValue={search} onSearchChange={setSearch}
-        onSearch={() => { setPage(1); setSearchQuery(search); }}
-        loading={loading} onAdd={openAdd} addLabel="+ 제품 추가"
+        columns={columns} data={res.items} total={res.total} page={res.page} pageSize={res.pageSize}
+        onPageChange={res.setPage} searchValue={res.search} onSearchChange={res.setSearch}
+        onSearch={res.doSearch} loading={res.loading} onAdd={openAdd} addLabel="+ 제품 추가"
       />
 
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editing ? "제품 수정" : "제품 추가"} width="max-w-4xl">
+      <Modal open={res.modalOpen} onClose={() => res.setModalOpen(false)} title={res.editing ? "제품 수정" : "제품 추가"} width="max-w-4xl">
         <div className="space-y-4">
           <div className="grid grid-cols-3 gap-4">
             <div>
@@ -216,27 +135,22 @@ export default function ProductManager() {
             <RichEditor value={form.description_html} onChange={(html) => setForm({ ...form, description_html: html })} />
           </div>
 
-          {/* Features list input */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">주요 기능</label>
             <div className="flex gap-2 mb-2">
-              <input type="text" value={featureInput}
-                onChange={(e) => setFeatureInput(e.target.value)}
+              <input type="text" value={featureInput} onChange={(e) => setFeatureInput(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addFeature(); } }}
                 placeholder="기능을 입력하고 Enter 또는 추가 버튼"
                 className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
               <button type="button" onClick={addFeature}
-                className="px-3 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 shrink-0">
-                추가
-              </button>
+                className="px-3 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 shrink-0">추가</button>
             </div>
             {form.features.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {form.features.map((f, i) => (
                   <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-700 rounded-full text-xs">
                     {f}
-                    <button type="button" onClick={() => removeFeature(i)}
-                      className="text-blue-400 hover:text-blue-700 ml-0.5">&times;</button>
+                    <button type="button" onClick={() => removeFeature(i)} className="text-blue-400 hover:text-blue-700 ml-0.5">&times;</button>
                   </span>
                 ))}
               </div>
@@ -264,23 +178,23 @@ export default function ProductManager() {
           </div>
 
           <div className="flex justify-end gap-2 pt-2">
-            <button onClick={() => setModalOpen(false)} className="px-4 py-2 text-sm text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">취소</button>
-            <button onClick={handleSave} disabled={saving} className="px-4 py-2 text-sm text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50">
-              {saving ? "저장 중..." : "저장"}
+            <button onClick={() => res.setModalOpen(false)} className="px-4 py-2 text-sm text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">취소</button>
+            <button onClick={handleSave} disabled={res.saving} className="px-4 py-2 text-sm text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50">
+              {res.saving ? "저장 중..." : "저장"}
             </button>
           </div>
         </div>
       </Modal>
 
-      <Modal open={!!deleteTarget} onClose={() => setDeleteTarget(null)} title="제품 삭제">
+      <Modal open={!!res.deleteTarget} onClose={() => res.setDeleteTarget(null)} title="제품 삭제">
         <div>
           <p className="text-sm text-gray-700 mb-4">
-            <strong>&ldquo;{deleteTarget?.name}&rdquo;</strong> 제품을 삭제하시겠습니까?
+            <strong>&ldquo;{res.deleteTarget?.name}&rdquo;</strong> 제품을 삭제하시겠습니까?
             <br /><span className="text-xs text-red-600">이 작업은 되돌릴 수 없습니다.</span>
           </p>
           <div className="flex justify-end gap-2">
-            <button onClick={() => setDeleteTarget(null)} className="px-4 py-2 text-sm text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">취소</button>
-            <button onClick={handleDelete} className="px-4 py-2 text-sm text-white bg-red-600 rounded-lg hover:bg-red-700">삭제</button>
+            <button onClick={() => res.setDeleteTarget(null)} className="px-4 py-2 text-sm text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">취소</button>
+            <button onClick={res.confirmDelete} className="px-4 py-2 text-sm text-white bg-red-600 rounded-lg hover:bg-red-700">삭제</button>
           </div>
         </div>
       </Modal>
