@@ -38,7 +38,7 @@ public class Admin {
     private LocalDateTime createdAt;
 
     public enum AdminRole {
-        SUPER, EDITOR, VIEWER
+        SUPER, ADMIN, EDITOR, VIEWER
     }
 
     public enum AdminSite {
