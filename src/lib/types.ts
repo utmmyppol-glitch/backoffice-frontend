@@ -10,21 +10,21 @@ export interface SiteConfig {
 // ── 메뉴 관리 ──
 export interface MenuItem {
   id: number;
-  parent_id: number | null;
+  parentId: number | null;
   name: string;
-  menu_type: "CONTENT" | "BOARD" | "EXTERNAL";
+  menuType: "CONTENT" | "BOARD" | "LINK";
   url: string;
-  sort_order: number;
-  visible: boolean;
+  sortOrder: number;
+  isExposed: boolean;
   children?: MenuItem[];
 }
 
 export interface MenuFormData {
-  parent_id: number | null;
+  parentId: number | null;
   name: string;
-  menu_type: "CONTENT" | "BOARD" | "EXTERNAL";
+  menuType: "CONTENT" | "BOARD" | "LINK";
   url: string;
-  visible: boolean;
+  isExposed: boolean;
 }
 
 // ── 콘텐츠 편집 ──
