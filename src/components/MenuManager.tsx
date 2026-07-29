@@ -115,7 +115,7 @@ export default function MenuManager({ site }: MenuManagerProps) {
     try {
       await apiFetch(`/api/admin/${site}/menus/${item.id}`, {
         method: "PUT",
-        body: JSON.stringify({ isExposed: !item.isExposed }),
+        body: JSON.stringify({ name: item.name, url: item.url, menuType: item.menuType, parentId: item.parentId, isExposed: !item.isExposed }),
       });
       fetchMenus();
     } catch (err) {
