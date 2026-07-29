@@ -44,8 +44,8 @@ export default function EducationManager() {
       const res = await apiFetch<PaginatedResponse<Education>>(
         `/api/admin/${site}/educations?${params}`
       );
-      setData(res.items);
-      setTotal(res.total);
+      setData(res.content);
+      setTotal(res.totalElements);
     } catch (err) {
       toast("error", err instanceof ApiError ? err.message : "교육 신청을 불러오지 못했습니다");
     } finally {

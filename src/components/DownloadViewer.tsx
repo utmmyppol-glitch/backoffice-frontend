@@ -28,8 +28,8 @@ export default function DownloadViewer({ site }: DownloadViewerProps) {
       const res = await apiFetch<PaginatedResponse<Download>>(
         `/api/admin/${site}/downloads?${params}`
       );
-      setData(res.items);
-      setTotal(res.total);
+      setData(res.content);
+      setTotal(res.totalElements);
     } catch (err) {
       toast("error", err instanceof ApiError ? err.message : "다운로드 이력을 불러오지 못했습니다");
     } finally {

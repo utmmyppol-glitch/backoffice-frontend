@@ -47,8 +47,8 @@ export default function InquiryManager({ site }: InquiryManagerProps) {
       const res = await apiFetch<PaginatedResponse<Inquiry>>(
         `/api/admin/${site}/inquiries?${params}`
       );
-      setData(res.items);
-      setTotal(res.total);
+      setData(res.content);
+      setTotal(res.totalElements);
     } catch (err) {
       toast("error", err instanceof ApiError ? err.message : "문의를 불러오지 못했습니다");
     } finally {

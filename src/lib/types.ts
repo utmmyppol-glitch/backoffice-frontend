@@ -44,12 +44,12 @@ export interface ContentHistory {
   created_at: string;
 }
 
-// ── 페이지네이션 ──
+// ── 페이지네이션 (Spring Page 형식) ──
 export interface PaginatedResponse<T> {
-  items: T[];
-  total: number;
-  page: number;
-  page_size: number;
+  content: T[];
+  totalElements: number;
+  number: number;
+  size: number;
 }
 
 // ── 게시글 ──

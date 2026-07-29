@@ -49,8 +49,8 @@ export default function useResource<T extends { id: number }>({
       });
       if (searchQuery) params.set("search", searchQuery);
       const res = await apiFetch<PaginatedResponse<T>>(`${basePath}?${params}`);
-      setItems(res.items);
-      setTotal(res.total);
+      setItems(res.content);
+      setTotal(res.totalElements);
     } catch (err) {
       toast(
         "error",
