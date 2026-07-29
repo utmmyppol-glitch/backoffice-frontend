@@ -1,3 +1,12 @@
+// ── 사이트 설정 ──
+export interface SiteConfig {
+  id: number;
+  configKey: string;
+  configValue: string;
+  description: string;
+  updatedAt: string;
+}
+
 // ── 메뉴 관리 ──
 export interface MenuItem {
   id: number;

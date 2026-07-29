@@ -14,6 +14,7 @@ const unionMenu = [
   { label: "고객 사례", href: "/union/customer-stories" },
   { label: "문의 관리", href: "/union/inquiries" },
   { label: "다운로드 조회", href: "/union/downloads" },
+  { label: "사이트 설정", href: "/union/site-config" },
 ];
 
 export default function UnionLayout({

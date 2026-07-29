@@ -17,6 +17,7 @@ const datawareMenu = [
   { label: "다운로드 조회", href: "/dataware/downloads" },
   { label: "교육 신청", href: "/dataware/educations" },
   { label: "세미나 신청", href: "/dataware/seminars" },
+  { label: "사이트 설정", href: "/dataware/site-config" },
 ];
 
 export default function DatawareLayout({
