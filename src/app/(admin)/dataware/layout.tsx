@@ -8,6 +8,7 @@ const datawareMenu = [
   { label: "대시보드", href: "/dataware/dashboard" },
   { label: "메뉴 관리", href: "/dataware/menus" },
   { label: "콘텐츠 편집", href: "/dataware/contents" },
+  { label: "페이지 빌더", href: "/dataware/page-builder" },
   { label: "게시글 관리", href: "/dataware/posts" },
   { label: "배너 관리", href: "/dataware/banners" },
   { label: "고객사 로고", href: "/dataware/client-logos" },
