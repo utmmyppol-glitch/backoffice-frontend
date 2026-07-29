@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
+import DOMPurify from "dompurify";
 import { apiFetch, ApiError } from "@/lib/api";
 import { ContentRegion, ContentHistory } from "@/lib/types";
 import Modal from "./Modal";
@@ -312,7 +313,7 @@ export default function ContentManager({ site }: ContentManagerProps) {
                 {previewHtml === h.body_html && (
                   <div
                     className="p-4 text-sm prose prose-sm max-w-none border-t border-gray-200"
-                    dangerouslySetInnerHTML={{ __html: h.body_html }}
+                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(h.body_html) }}
                   />
                 )}
               </div>

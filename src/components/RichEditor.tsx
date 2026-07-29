@@ -60,12 +60,32 @@ export default function RichEditor({ value, onChange }: RichEditorProps) {
   const addLink = useCallback(() => {
     const url = window.prompt("링크 URL을 입력하세요:");
     if (!url || !editor) return;
+    try {
+      const parsed = new URL(url);
+      if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+        alert("http 또는 https URL만 허용됩니다");
+        return;
+      }
+    } catch {
+      alert("올바른 URL을 입력하세요");
+      return;
+    }
     editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
   }, [editor]);
 
   const addImage = useCallback(() => {
     const url = window.prompt("이미지 URL을 입력하세요:");
     if (!url || !editor) return;
+    try {
+      const parsed = new URL(url);
+      if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+        alert("http 또는 https URL만 허용됩니다");
+        return;
+      }
+    } catch {
+      alert("올바른 URL을 입력하세요");
+      return;
+    }
     editor.chain().focus().setImage({ src: url }).run();
   }, [editor]);
 

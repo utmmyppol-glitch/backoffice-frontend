@@ -8,6 +8,7 @@ import Modal from "./Modal";
 import ToggleSwitch from "./ToggleSwitch";
 import { useToast } from "./Toast";
 import NextImage from "next/image";
+import { isValidImageUrl } from "@/lib/url";
 
 interface ClientLogoManagerProps {
   site: "union" | "dataware";
@@ -167,7 +168,7 @@ export default function ClientLogoManager({ site }: ClientLogoManagerProps) {
             <input type="url" value={form.image_url} onChange={(e) => setForm({ ...form, image_url: e.target.value })}
               placeholder="https://example.com/logo.png"
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
-            {form.image_url && (
+            {isValidImageUrl(form.image_url) && (
               <div className="mt-2 p-3 bg-gray-50 rounded-lg inline-block">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={form.image_url} alt="로고 미리보기" className="max-h-20 object-contain" />

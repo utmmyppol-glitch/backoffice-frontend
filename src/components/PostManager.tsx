@@ -8,6 +8,7 @@ import Modal from "./Modal";
 import ToggleSwitch from "./ToggleSwitch";
 import { useToast } from "./Toast";
 import dynamic from "next/dynamic";
+import { isValidImageUrl } from "@/lib/url";
 
 const RichEditor = dynamic(() => import("./RichEditor"), { ssr: false });
 
@@ -224,7 +225,7 @@ export default function PostManager({ site }: PostManagerProps) {
               onChange={(e) => setForm({ ...form, thumbnail_url: e.target.value })}
               placeholder="https://example.com/image.jpg"
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
-            {form.thumbnail_url && (
+            {isValidImageUrl(form.thumbnail_url) && (
               <div className="mt-2 p-2 bg-gray-50 rounded-lg inline-block">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={form.thumbnail_url} alt="썸네일 미리보기" className="max-h-32 rounded" />
