@@ -8,6 +8,7 @@ const unionMenu = [
   { label: "대시보드", href: "/union/dashboard" },
   { label: "메뉴 관리", href: "/union/menus" },
   { label: "콘텐츠 편집", href: "/union/contents" },
+  { label: "페이지 빌더", href: "/union/page-builder" },
   { label: "게시글 관리", href: "/union/posts" },
   { label: "배너 관리", href: "/union/banners" },
   { label: "고객사 로고", href: "/union/client-logos" },
