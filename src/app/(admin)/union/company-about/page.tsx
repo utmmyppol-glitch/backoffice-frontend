@@ -173,10 +173,27 @@ function CompanyAboutEditor() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
   const [historyTarget, setHistoryTarget] = useState<string | null>(null);
+  const [codeView, setCodeView] = useState<Set<string>>(new Set());
+
+  const toggleCode = useCallback((key: string) => {
+    setCodeView((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  }, []);
 
   const sendToPreview = useCallback((section: string, newData: unknown) => {
     iframeRef.current?.contentWindow?.postMessage({ type: "content-update", section, data: newData }, "*");
   }, []);
+
+  const handleCodeEdit = useCallback((sectionKey: string, raw: string) => {
+    try {
+      const parsed = JSON.parse(raw);
+      setData((prev) => ({ ...prev, [sectionKey]: parsed }));
+      sendToPreview(sectionKey, parsed);
+    } catch { /* 유효한 JSON이 아니면 무시 */ }
+  }, [sendToPreview]);
 
   // 초기 로딩
   useEffect(() => {
@@ -353,6 +370,10 @@ function CompanyAboutEditor() {
                   <div className="flex items-center justify-between mb-3">
                     <h2 className="text-sm font-semibold text-gray-800">{section.label}</h2>
                     <div className="flex items-center gap-1">
+                      <button onClick={() => toggleCode(section.key)} title="코드 보기"
+                        className={`px-2 py-1 text-xs rounded ${codeView.has(section.key) ? 'bg-gray-800 text-white' : 'text-gray-500 hover:bg-gray-100'}`}>
+                        &lt;/&gt;
+                      </button>
                       <button onClick={() => resetToDefault(section.key)} title="기본값으로 되돌리기"
                         className="px-2 py-1 text-xs text-gray-500 hover:bg-gray-100 rounded">↩ 기본값</button>
                       {cId && (
@@ -365,19 +386,39 @@ function CompanyAboutEditor() {
                       </button>
                     </div>
                   </div>
-                  {isArray ? (
-                    <ArrayFields
-                      data={value as Record<string, string>[]}
-                      defaultData={section.default as Record<string, string>[]}
-                      sectionKey={section.key}
-                      onChange={(idx, k, v) => updateArray(section.key, idx, k, v)}
-                      onAdd={() => addArrayItem(section.key, section.itemTemplate || {})}
-                      onDelete={(idx) => deleteArrayItem(section.key, idx)}
-                      onMove={(idx, dir) => moveArrayItem(section.key, idx, dir)}
-                    />
+                  {codeView.has(section.key) ? (
+                    /* ── 코드 보기 모드 ── */
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-[10px] font-mono text-gray-400 uppercase tracking-wider">저장될 값 (JSON)</span>
+                        <span className="text-[10px] text-emerald-600">직접 편집 가능</span>
+                      </div>
+                      <textarea
+                        value={JSON.stringify(value, null, 2)}
+                        onChange={(e) => handleCodeEdit(section.key, e.target.value)}
+                        spellCheck={false}
+                        className="w-full font-mono text-xs leading-5 bg-gray-900 text-emerald-300 rounded-lg p-4 border-0 focus:ring-2 focus:ring-emerald-500 resize-y"
+                        style={{ minHeight: 120, tabSize: 2 }}
+                      />
+                    </div>
                   ) : (
-                    <ObjectFields data={value as Record<string, string>} defaultData={section.default as Record<string, string>}
-                      sectionKey={section.key} onChange={(k, v) => updateObject(section.key, k, v)} />
+                    /* ── 폼 편집 모드 ── */
+                    <>
+                      {isArray ? (
+                        <ArrayFields
+                          data={value as Record<string, string>[]}
+                          defaultData={section.default as Record<string, string>[]}
+                          sectionKey={section.key}
+                          onChange={(idx, k, v) => updateArray(section.key, idx, k, v)}
+                          onAdd={() => addArrayItem(section.key, section.itemTemplate || {})}
+                          onDelete={(idx) => deleteArrayItem(section.key, idx)}
+                          onMove={(idx, dir) => moveArrayItem(section.key, idx, dir)}
+                        />
+                      ) : (
+                        <ObjectFields data={value as Record<string, string>} defaultData={section.default as Record<string, string>}
+                          sectionKey={section.key} onChange={(k, v) => updateObject(section.key, k, v)} />
+                      )}
+                    </>
                   )}
                 </div>
               );
