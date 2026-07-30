@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { Puck } from "@measured/puck";
 import "@measured/puck/puck.css";
 import { puckConfig } from "@/puck/config";
+import { SiteProvider } from "@/puck/SiteContext";
 import { apiFetch, ApiError } from "@/lib/api";
 import { useToast } from "@/components/Toast";
 import type { MenuItem } from "@/lib/types";
@@ -192,138 +193,109 @@ export default function PageBuilder({ site }: { site: "dataware" | "union" }) {
   }
 
   return (
-    <div className="flex flex-col" style={{ height: "calc(100vh - 56px)" }}>
-      {/* ── 상단 도구 바 ── */}
-      <div
-        className="flex items-center gap-3 px-4 py-2 border-b border-gray-200 bg-white shrink-0"
-        style={{ zIndex: 50 }}
-      >
-        {/* 사이트 표시 */}
-        <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">
-          {siteName}
-        </span>
-        <span className="text-gray-300">|</span>
-
-        {/* 페이지 선택 */}
-        <label className="text-sm text-gray-600 font-medium whitespace-nowrap">
-          편집할 페이지:
-        </label>
-        <select
-          value={selectedPage}
-          onChange={(e) => setSelectedPage(e.target.value)}
-          className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 min-w-[200px]"
+    <SiteProvider value={site}>
+      <div className="flex flex-col" style={{ height: "calc(100vh - 56px)" }}>
+        {/* ── 상단 도구 바 ── */}
+        <div
+          className="flex items-center gap-3 px-4 py-2 border-b border-gray-200 bg-white shrink-0"
+          style={{ zIndex: 50 }}
         >
-          {pages.map((p) => (
-            <option key={p.key} value={p.key}>
-              {p.label}
-            </option>
-          ))}
-        </select>
+          {/* 사이트 표시 */}
+          <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">
+            {siteName}
+          </span>
+          <span className="text-gray-300">|</span>
 
-        {/* 상태 뱃지 */}
-        <span
-          className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-            status === "PUBLISHED"
-              ? "bg-green-100 text-green-700"
-              : "bg-amber-100 text-amber-700"
-          }`}
-        >
-          {status === "PUBLISHED" ? "발행됨" : "임시저장"}
-        </span>
+          {/* 페이지 선택 */}
+          <label className="text-sm text-gray-600 font-medium whitespace-nowrap">
+            편집할 페이지:
+          </label>
+          <select
+            value={selectedPage}
+            onChange={(e) => setSelectedPage(e.target.value)}
+            className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 min-w-[200px]"
+          >
+            {pages.map((p) => (
+              <option key={p.key} value={p.key}>
+                {p.label}
+              </option>
+            ))}
+          </select>
 
-        <div className="flex-1" />
+          {/* 상태 뱃지 */}
+          <span
+            className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+              status === "PUBLISHED"
+                ? "bg-green-100 text-green-700"
+                : "bg-amber-100 text-amber-700"
+            }`}
+          >
+            {status === "PUBLISHED" ? "발행됨" : "임시저장"}
+          </span>
 
-        {/* 코드 보기 토글 */}
-        <button
-          onClick={() => setShowCode((v) => !v)}
-          className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border transition-colors ${
-            showCode
-              ? "bg-gray-800 text-white border-gray-800"
-              : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
-          }`}
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <polyline points="16 18 22 12 16 6" />
-            <polyline points="8 6 2 12 8 18" />
-          </svg>
-          코드 보기
-        </button>
-      </div>
+          <div className="flex-1" />
 
-      {/* ── 에디터 영역 ── */}
-      <div className="flex flex-1 overflow-hidden">
-        <div className="flex-1 overflow-auto">
-          {loading ? (
-            <div className="flex items-center justify-center h-full text-gray-400">
-              레이아웃 불러오는 중...
-            </div>
-          ) : initialData && Object.keys(initialData).length === 0 ? (
-            /* 빈 캔버스 안내 — Puck은 빈 data({})도 받음 */
-            <Puck
-              config={puckConfig}
-              data={initialData as Parameters<typeof Puck>[0]["data"]}
-              onPublish={async (data) => {
-                await handleSave(data as Record<string, unknown>, "PUBLISHED");
-              }}
-              onChange={(data) => {
-                setCurrentData(data as Record<string, unknown>);
-              }}
-              headerTitle={`${siteName} — ${selectedPage}`}
-              overrides={{
-                headerActions: ({ children }) => (
-                  <>
-                    <button
-                      onClick={async () => {
-                        if (currentData) {
-                          await handleSave(currentData, "DRAFT");
-                        }
-                      }}
-                      disabled={saving}
-                      className="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200 mr-2 disabled:opacity-50"
-                    >
-                      {saving ? "저장 중..." : "임시저장"}
-                    </button>
-                    {children}
-                  </>
-                ),
-              }}
-            />
-          ) : initialData ? (
-            <Puck
-              config={puckConfig}
-              data={initialData as Parameters<typeof Puck>[0]["data"]}
-              onPublish={async (data) => {
-                await handleSave(data as Record<string, unknown>, "PUBLISHED");
-              }}
-              onChange={(data) => {
-                setCurrentData(data as Record<string, unknown>);
-              }}
-              headerTitle={`${siteName} — ${selectedPage}`}
-              overrides={{
-                headerActions: ({ children }) => (
-                  <>
-                    <button
-                      onClick={async () => {
-                        if (currentData) {
-                          await handleSave(currentData, "DRAFT");
-                        }
-                      }}
-                      disabled={saving}
-                      className="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200 mr-2 disabled:opacity-50"
-                    >
-                      {saving ? "저장 중..." : "임시저장"}
-                    </button>
-                    {children}
-                  </>
-                ),
-              }}
-            />
-          ) : null}
+          {/* 코드 보기 토글 */}
+          <button
+            onClick={() => setShowCode((v) => !v)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border transition-colors ${
+              showCode
+                ? "bg-gray-800 text-white border-gray-800"
+                : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
+            }`}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <polyline points="16 18 22 12 16 6" />
+              <polyline points="8 6 2 12 8 18" />
+            </svg>
+            코드 보기
+          </button>
         </div>
 
-        {/* 코드 보기 패널 */}
-        {showCode && currentData && <CodeViewPanel data={currentData} />}
+        {/* ── 에디터 영역 ── */}
+        <div className="flex flex-1 overflow-hidden">
+          <div className="flex-1 overflow-auto">
+            {loading ? (
+              <div className="flex items-center justify-center h-full text-gray-400">
+                레이아웃 불러오는 중...
+              </div>
+            ) : initialData ? (
+              <Puck
+                config={puckConfig}
+                data={initialData as Parameters<typeof Puck>[0]["data"]}
+                onPublish={async (data) => {
+                  await handleSave(data as Record<string, unknown>, "PUBLISHED");
+                }}
+                onChange={(data) => {
+                  setCurrentData(data as Record<string, unknown>);
+                }}
+                headerTitle={`${siteName} — ${selectedPage}`}
+                overrides={{
+                  headerActions: ({ children }) => (
+                    <>
+                      <button
+                        onClick={async () => {
+                          if (currentData) {
+                            await handleSave(currentData, "DRAFT");
+                          }
+                        }}
+                        disabled={saving}
+                        className="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200 mr-2 disabled:opacity-50"
+                      >
+                        {saving ? "저장 중..." : "임시저장"}
+                      </button>
+                      {children}
+                    </>
+                  ),
+                }}
+              />
+            ) : null}
+          </div>
+
+          {/* 코드 보기 패널 */}
+          {showCode && currentData && <CodeViewPanel data={currentData} />}
+        </div>
       </div>
-    </div>
+    </SiteProvider>
   );
 }

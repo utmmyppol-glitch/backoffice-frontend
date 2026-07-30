@@ -1,4 +1,5 @@
 import type { Config } from "@measured/puck";
+import ImageUploadField from "./ImageUploadField";
 
 /* ── 공통 테마 ── */
 const THEME = {
@@ -214,7 +215,13 @@ export const puckConfig: Config<BlockProps> = {
         backgroundColor: "transparent",
       },
       fields: {
-        src: { type: "text", label: "이미지 URL" },
+        src: {
+          type: "custom",
+          label: "이미지",
+          render: ({ value, onChange }) => (
+            <ImageUploadField value={value} onChange={onChange} />
+          ),
+        },
         alt: { type: "text", label: "대체 텍스트" },
         maxWidth: { type: "number", label: "최대 너비 (px)", min: 100, max: 2000 },
         borderRadius: { type: "number", label: "모서리 둥글기 (px)", min: 0, max: 100 },
@@ -277,7 +284,13 @@ export const puckConfig: Config<BlockProps> = {
         borderRadius: 0,
       },
       fields: {
-        src: { type: "text", label: "이미지 URL" },
+        src: {
+          type: "custom",
+          label: "이미지",
+          render: ({ value, onChange }) => (
+            <ImageUploadField value={value} onChange={onChange} />
+          ),
+        },
         alt: { type: "text", label: "대체 텍스트" },
         text: { type: "textarea", label: "본문" },
         imagePosition: {
