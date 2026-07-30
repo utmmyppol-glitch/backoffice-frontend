@@ -1,17 +1,16 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
-import { useSite } from "./SiteContext";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
 interface Props {
   value: string;
   onChange: (url: string) => void;
+  site: string;
 }
 
-export default function ImageUploadField({ value, onChange }: Props) {
-  const site = useSite();
+export default function ImageUploadField({ value, onChange, site }: Props) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -98,7 +97,6 @@ export default function ImageUploadField({ value, onChange }: Props) {
             backgroundColor: "#f9fafb",
           }}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={value}
             alt="미리보기"
