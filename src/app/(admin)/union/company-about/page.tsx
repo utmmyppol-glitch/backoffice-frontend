@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { apiFetch } from "@/lib/api";
 import { useToast, ToastProvider } from "@/components/Toast";
 
@@ -105,6 +105,9 @@ const SECTIONS: SectionDef<unknown>[] = [
   },
 ];
 
+const PREVIEW_URL =
+  process.env.NEXT_PUBLIC_UNION_URL || "http://localhost:3000";
+
 /* ── 필드 렌더 ── */
 function ObjectFields({
   data,
@@ -122,22 +125,22 @@ function ObjectFields({
     <div className="space-y-3">
       {Object.entries(data).map(([k, v]) => (
         <div key={k}>
-          <label className="block text-sm font-medium text-gray-600 mb-1">
+          <label className="block text-xs font-medium text-gray-500 mb-1">
             {LABEL_MAP[k] || k}
           </label>
           {(k === "desc" || k === "text" || k === "quote") ? (
             <textarea
               value={v}
               onChange={(e) => onChange(k, e.target.value)}
-              rows={3}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+              rows={2}
+              className="w-full border border-gray-300 rounded px-2.5 py-1.5 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
             />
           ) : (
             <input
               type="text"
               value={v}
               onChange={(e) => onChange(k, e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+              className="w-full border border-gray-300 rounded px-2.5 py-1.5 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
             />
           )}
         </div>
@@ -154,9 +157,9 @@ function ArrayFields({
   onChange: (idx: number, key: string, val: string) => void;
 }) {
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {data.map((item, idx) => (
-        <div key={idx} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+        <div key={idx} className="border border-gray-200 rounded p-3 bg-gray-50">
           <p className="text-xs font-bold text-gray-400 mb-2">#{idx + 1}</p>
           <ObjectFields
             data={item}
@@ -171,11 +174,18 @@ function ArrayFields({
 /* ── 메인 ── */
 function CompanyAboutEditor() {
   const { toast } = useToast();
+  const iframeRef = useRef<HTMLIFrameElement>(null);
   const [data, setData] = useState<Record<string, unknown>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
 
-  // 초기 로딩: 기존 콘텐츠 불러오기
+  const refreshPreview = useCallback(() => {
+    if (iframeRef.current) {
+      iframeRef.current.src = `${PREVIEW_URL}/company?t=${Date.now()}`;
+    }
+  }, []);
+
+  // 초기 로딩
   useEffect(() => {
     apiFetch<ContentResponse[]>("/api/admin/union/contents")
       .then((contents) => {
@@ -195,7 +205,6 @@ function CompanyAboutEditor() {
         setData(map);
       })
       .catch(() => {
-        // API 실패 시 기본값
         const map: Record<string, unknown> = {};
         for (const section of SECTIONS) {
           map[section.key] = section.default;
@@ -219,13 +228,14 @@ function CompanyAboutEditor() {
           }),
         });
         toast("success", "저장되었습니다");
+        refreshPreview();
       } catch {
         toast("error", "저장에 실패했습니다");
       } finally {
         setSaving(null);
       }
     },
-    [data, toast]
+    [data, toast, refreshPreview]
   );
 
   const handleSaveAll = useCallback(async () => {
@@ -243,12 +253,13 @@ function CompanyAboutEditor() {
         });
       }
       toast("success", "모든 섹션이 저장되었습니다");
+      refreshPreview();
     } catch {
       toast("error", "저장 중 오류가 발생했습니다");
     } finally {
       setSaving(null);
     }
-  }, [data, toast]);
+  }, [data, toast, refreshPreview]);
 
   const updateObject = useCallback(
     (sectionKey: string, fieldKey: string, value: string) => {
@@ -280,60 +291,92 @@ function CompanyAboutEditor() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">회사소개 편집</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            디자인은 그대로, 텍스트·숫자·이미지만 편집됩니다
-          </p>
+    <div className="flex" style={{ height: "calc(100vh - 56px)", margin: "-24px" }}>
+      {/* ── 왼쪽: 실제 페이지 미리보기 ── */}
+      <div className="flex-1 border-r border-gray-200 flex flex-col bg-gray-100">
+        <div className="flex items-center justify-between px-4 py-2 bg-white border-b border-gray-200 shrink-0">
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full bg-red-400" />
+            <div className="w-3 h-3 rounded-full bg-yellow-400" />
+            <div className="w-3 h-3 rounded-full bg-green-400" />
+            <span className="ml-2 text-xs text-gray-400 font-mono">
+              {PREVIEW_URL}/company
+            </span>
+          </div>
+          <button
+            onClick={refreshPreview}
+            className="text-xs text-gray-500 hover:text-gray-800 px-2 py-1 rounded hover:bg-gray-100"
+          >
+            ↻ 새로고침
+          </button>
         </div>
-        <button
-          onClick={handleSaveAll}
-          disabled={saving !== null}
-          className="px-5 py-2.5 bg-emerald-600 text-white rounded-lg font-medium text-sm hover:bg-emerald-700 disabled:opacity-50"
-        >
-          {saving === "all" ? "저장 중..." : "전체 저장"}
-        </button>
+        <iframe
+          ref={iframeRef}
+          src={`${PREVIEW_URL}/company`}
+          className="flex-1 w-full bg-white"
+          style={{ border: "none" }}
+          title="회사소개 미리보기"
+        />
       </div>
 
-      <div className="space-y-6">
-        {SECTIONS.map((section) => {
-          const value = data[section.key];
-          const isArray = Array.isArray(value);
-
-          return (
-            <div
-              key={section.key}
-              className="border border-gray-200 rounded-xl bg-white p-6"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-gray-800">
-                  {section.label}
-                </h2>
-                <button
-                  onClick={() => handleSave(section.key)}
-                  disabled={saving !== null}
-                  className="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50"
-                >
-                  {saving === section.key ? "저장 중..." : "이 섹션 저장"}
-                </button>
-              </div>
-
-              {isArray ? (
-                <ArrayFields
-                  data={value as Record<string, string>[]}
-                  onChange={(idx, k, v) => updateArray(section.key, idx, k, v)}
-                />
-              ) : (
-                <ObjectFields
-                  data={value as Record<string, string>}
-                  onChange={(k, v) => updateObject(section.key, k, v)}
-                />
-              )}
+      {/* ── 오른쪽: 편집 폼 ── */}
+      <div className="overflow-y-auto" style={{ width: 440 }}>
+        <div className="p-5">
+          <div className="flex items-center justify-between mb-5">
+            <div>
+              <h1 className="text-lg font-bold text-gray-900">회사소개 편집</h1>
+              <p className="text-xs text-gray-500 mt-0.5">
+                저장하면 왼쪽 미리보기에 즉시 반영
+              </p>
             </div>
-          );
-        })}
+            <button
+              onClick={handleSaveAll}
+              disabled={saving !== null}
+              className="px-4 py-2 bg-emerald-600 text-white rounded-lg font-medium text-sm hover:bg-emerald-700 disabled:opacity-50"
+            >
+              {saving === "all" ? "저장 중..." : "전체 저장"}
+            </button>
+          </div>
+
+          <div className="space-y-4">
+            {SECTIONS.map((section) => {
+              const value = data[section.key];
+              const isArray = Array.isArray(value);
+
+              return (
+                <div
+                  key={section.key}
+                  className="border border-gray-200 rounded-lg bg-white p-4"
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <h2 className="text-sm font-semibold text-gray-800">
+                      {section.label}
+                    </h2>
+                    <button
+                      onClick={() => handleSave(section.key)}
+                      disabled={saving !== null}
+                      className="px-2.5 py-1 text-xs bg-gray-100 text-gray-600 rounded hover:bg-gray-200 disabled:opacity-50"
+                    >
+                      {saving === section.key ? "..." : "저장"}
+                    </button>
+                  </div>
+
+                  {isArray ? (
+                    <ArrayFields
+                      data={value as Record<string, string>[]}
+                      onChange={(idx, k, v) => updateArray(section.key, idx, k, v)}
+                    />
+                  ) : (
+                    <ObjectFields
+                      data={value as Record<string, string>}
+                      onChange={(k, v) => updateObject(section.key, k, v)}
+                    />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </div>
     </div>
   );
