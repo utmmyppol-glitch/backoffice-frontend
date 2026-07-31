@@ -5,6 +5,12 @@ import { apiFetch } from "@/lib/api";
 import { getUser } from "@/lib/auth";
 import Link from "next/link";
 
+interface Paged<T> { content: T[]; totalElements: number }
+function normalize<T>(res: Paged<T> | T[]): Paged<T> {
+  if (Array.isArray(res)) return { content: res, totalElements: res.length };
+  return { content: res.content ?? [], totalElements: res.totalElements ?? 0 };
+}
+
 interface DashboardData {
   totalInquiries: number;
   newInquiries: number;
@@ -34,22 +40,34 @@ export default function DatawareDashboard() {
     let cancelled = false;
     async function load() {
       try {
-        const [inquiries, posts, products, educations, seminars, downloads, stories] = await Promise.all([
-          apiFetch<{ content: { id: number; name: string; company: string; message: string; status: string; created_at: string }[]; totalElements: number }>("/api/admin/dataware/inquiries?page=0&size=5&sort=created_at,desc").catch(() => ({ content: [], totalElements: 0 })),
-          apiFetch<{ content: { id: number; title: string; category: string; created_at: string }[]; totalElements: number }>("/api/admin/dataware/posts?page=0&size=5&sort=created_at,desc").catch(() => ({ content: [], totalElements: 0 })),
-          apiFetch<{ content: unknown[]; totalElements: number }>("/api/admin/dataware/products?page=0&size=1").catch(() => ({ content: [], totalElements: 0 })),
-          apiFetch<{ content: unknown[]; totalElements: number }>("/api/admin/dataware/educations?page=0&size=1").catch(() => ({ content: [], totalElements: 0 })),
-          apiFetch<{ content: unknown[]; totalElements: number }>("/api/admin/dataware/seminars?page=0&size=1").catch(() => ({ content: [], totalElements: 0 })),
-          apiFetch<{ content: unknown[]; totalElements: number }>("/api/admin/dataware/downloads?page=0&size=1").catch(() => ({ content: [], totalElements: 0 })),
-          apiFetch<{ content: unknown[]; totalElements: number }>("/api/admin/dataware/customer-stories?page=0&size=1").catch(() => ({ content: [], totalElements: 0 })),
+        type InqItem = { id: number; name: string; company: string; message: string; status: string; created_at: string };
+        type PostItem = { id: number; title: string; category: string; created_at: string };
+
+        const [inquiriesRaw, postsRaw, productsRaw, educationsRaw, seminarsRaw, downloadsRaw, storiesRaw] = await Promise.all([
+          apiFetch<Paged<InqItem> | InqItem[]>("/api/admin/dataware/inquiries?page=0&size=5&sort=created_at,desc").catch(() => [] as InqItem[]),
+          apiFetch<Paged<PostItem> | PostItem[]>("/api/admin/dataware/posts?page=0&size=5&sort=created_at,desc").catch(() => [] as PostItem[]),
+          apiFetch<Paged<unknown> | unknown[]>("/api/admin/dataware/products?page=0&size=1").catch(() => []),
+          apiFetch<Paged<unknown> | unknown[]>("/api/admin/dataware/educations?page=0&size=1").catch(() => []),
+          apiFetch<Paged<unknown> | unknown[]>("/api/admin/dataware/seminars?page=0&size=1").catch(() => []),
+          apiFetch<Paged<unknown> | unknown[]>("/api/admin/dataware/downloads?page=0&size=1").catch(() => []),
+          apiFetch<Paged<unknown> | unknown[]>("/api/admin/dataware/customer-stories?page=0&size=1").catch(() => []),
         ]);
 
         if (cancelled) return;
 
+        const inquiries = normalize(inquiriesRaw);
+        const posts = normalize(postsRaw);
+        const products = normalize(productsRaw);
+        const educations = normalize(educationsRaw);
+        const seminars = normalize(seminarsRaw);
+        const downloads = normalize(downloadsRaw);
+        const stories = normalize(storiesRaw);
+
         let totalNew = inquiries.content.filter(i => i.status === "NEW").length;
         if (inquiries.totalElements > 5 && totalNew > 0) {
           try {
-            const allInq = await apiFetch<{ content: { status: string }[]; totalElements: number }>("/api/admin/dataware/inquiries?page=0&size=100");
+            const allInqRaw = await apiFetch<Paged<{ status: string }> | { status: string }[]>("/api/admin/dataware/inquiries?page=0&size=100");
+            const allInq = normalize(allInqRaw);
             totalNew = allInq.content.filter(i => i.status === "NEW").length;
           } catch { /* keep estimate */ }
         }
@@ -140,7 +158,7 @@ export default function DatawareDashboard() {
         {kpiCards.map(card => (
           <div key={card.label} className={`${card.color} border rounded-xl p-4 flex flex-col items-center text-center`}>
             <span className="text-2xl mb-2">{card.icon}</span>
-            <p className="text-2xl font-bold">{card.value.toLocaleString()}</p>
+            <p className="text-2xl font-bold">{(card.value ?? 0).toLocaleString()}</p>
             <p className="text-xs font-medium mt-1 opacity-80">{card.label}</p>
           </div>
         ))}
