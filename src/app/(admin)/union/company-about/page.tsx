@@ -214,6 +214,15 @@ function GenericPageEditor() {
     const handler = (e: MessageEvent) => {
       if (e.data?.type === "editable-manifest") {
         const fields = e.data.fields as ManifestField[];
+        const newPath = e.data.path as string | undefined;
+        // 페이지 전환 감지 → 이전 페이지 상태 초기화
+        if (newPath && newPath !== pageUrl) {
+          setPageUrl(newPath);
+          setUrlInput(newPath);
+          setSectionData({});
+          setContentIds({});
+          setDirty(new Set());
+        }
         setManifest(fields);
         setLoaded(true);
         const keys = Array.from(new Set(fields.map(f => f.id.split(".")[0])));
@@ -233,7 +242,7 @@ function GenericPageEditor() {
     };
     window.addEventListener("message", handler);
     return () => window.removeEventListener("message", handler);
-  }, [loadSectionData]);
+  }, [loadSectionData, pageUrl]);
 
   /* ── 필드 값 읽기 ── */
   const getFieldValue = useCallback((fieldId: string): string => {
