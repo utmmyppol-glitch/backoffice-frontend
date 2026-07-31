@@ -22,7 +22,7 @@ export async function apiFetch<T>(
   });
 
   if (res.status === 401 || res.status === 403) {
-    if (typeof window !== "undefined" && res.status === 401) {
+    if (typeof window !== "undefined") {
       localStorage.removeItem("token");
       localStorage.removeItem("user");
       window.location.href = "/login";
