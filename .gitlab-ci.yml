@@ -1,0 +1,76 @@
+# =============================================
+# Union Backend - GitLab CI/CD Pipeline
+# =============================================
+
+stages:
+  - build
+  - test
+  - docker
+  - deploy
+
+variables:
+  GRADLE_OPTS: "-Dorg.gradle.daemon=false"
+  DOCKER_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+
+# --- Gradle 캐시 ---
+.gradle-cache: &gradle-cache
+  cache:
+    key: gradle-${CI_COMMIT_REF_SLUG}
+    paths:
+      - .gradle/
+      - build/
+      - "*/build/"
+
+# ---- Build ----
+build:
+  stage: build
+  image: eclipse-temurin:17-jdk
+  <<: *gradle-cache
+  script:
+    - chmod +x gradlew
+    - ./gradlew :module-admin:bootJar --no-daemon
+  artifacts:
+    paths:
+      - module-admin/build/libs/*.jar
+    expire_in: 1 hour
+
+# ---- Test ----
+test:
+  stage: test
+  image: eclipse-temurin:17-jdk
+  <<: *gradle-cache
+  script:
+    - chmod +x gradlew
+    - ./gradlew test --no-daemon
+  artifacts:
+    when: always
+    reports:
+      junit: "*/build/test-results/test/*.xml"
+
+# ---- Docker Image ----
+docker:
+  stage: docker
+  image: docker:latest
+  services:
+    - docker:dind
+  only:
+    - main
+    - tags
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker build -t $DOCKER_IMAGE .
+    - docker tag $DOCKER_IMAGE $CI_REGISTRY_IMAGE:latest
+    - docker push $DOCKER_IMAGE
+    - docker push $CI_REGISTRY_IMAGE:latest
+
+# ---- Deploy  ----
+deploy:
+  stage: deploy
+  only:
+    - main
+  when: manual
+  script:
+    - echo "배포 스크립트를 여기에 추가하세요"
+    - echo "앱 포트: 8080, DB 포트: 5432"
+    # 예시: ssh로 서버 배포
+    # - ssh $DEPLOY_USER@$DEPLOY_HOST "docker pull $DOCKER_IMAGE && docker-compose up -d"
