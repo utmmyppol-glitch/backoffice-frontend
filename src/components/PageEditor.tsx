@@ -11,6 +11,15 @@ interface HistoryEntry { id: number; contentId: number; bodyHtml: string; edited
 interface ManifestField { id: string; type: "text" | "image"; value: string; }
 interface SectionGroup { key: string; fields: ManifestField[]; }
 
+interface MenuItemRaw {
+  id: number;
+  name: string;
+  url: string;
+  menuType: "CONTENT" | "BOARD" | "LINK";
+  isExposed: boolean;
+  children?: MenuItemRaw[];
+}
+
 interface PageEditorProps {
   site: "union" | "dataware";
   presetPages: { label: string; path: string }[];
@@ -36,6 +45,20 @@ const THEME = {
     highlightColor: "#36c88a",
   },
 };
+
+/* ── 메뉴 트리 → 페이지 목록 플래튼 ── */
+function flattenMenuPages(items: MenuItemRaw[]): { label: string; path: string }[] {
+  const result: { label: string; path: string }[] = [];
+  for (const item of items) {
+    if (item.url && item.isExposed && item.menuType !== "LINK") {
+      result.push({ label: item.name, path: item.url });
+    }
+    if (item.children?.length) {
+      result.push(...flattenMenuPages(item.children));
+    }
+  }
+  return result;
+}
 
 const TEXTAREA_HINTS = new Set(["desc", "text", "quote", "hoursNote"]);
 const LABEL_MAP: Record<string, string> = {
@@ -175,6 +198,9 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
 
   const t = THEME[site];
 
+  const [menuPages, setMenuPages] = useState<{ label: string; path: string }[]>([]);
+  const pages = menuPages.length > 0 ? menuPages : presetPages;
+
   const [pageUrl, setPageUrl] = useState(presetPages[0].path);
   const [urlInput, setUrlInput] = useState(presetPages[0].path);
 
@@ -206,6 +232,26 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
       iframeRef.current.src = `${previewBaseUrl}${path}?_edit=1&t=${Date.now()}`;
     }
   }, [previewBaseUrl]);
+
+  /* ── DB 메뉴에서 페이지 목록 자동 로드 ── */
+  useEffect(() => {
+    let cancelled = false;
+    apiFetch<MenuItemRaw[]>(`/api/admin/${site}/menus`)
+      .then(data => {
+        if (cancelled) return;
+        const items = flattenMenuPages(data);
+        if (items.length > 0) {
+          setMenuPages(items);
+          // 첫 페이지가 현재와 다르면 자동 전환
+          if (items[0].path !== pageUrl) {
+            loadPage(items[0].path);
+          }
+        }
+      })
+      .catch(() => { /* 메뉴 로드 실패 시 preset fallback 사용 */ });
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [site]);
 
   const loadSectionData = useCallback(async (keys: string[]) => {
     try {
@@ -256,6 +302,16 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
     window.addEventListener("message", handler);
     return () => window.removeEventListener("message", handler);
   }, [loadSectionData, t.highlightColor]);
+
+  /* iframe 로드 완료 시 manifest 재요청 (타이밍 엣지 케이스 방지) */
+  const handleIframeLoad = useCallback(() => {
+    setTimeout(() => {
+      if (!iframeRef.current) return;
+      try {
+        iframeRef.current.contentWindow?.postMessage({ type: "request-manifest" }, "*");
+      } catch { /* cross-origin 접근 실패 무시 */ }
+    }, 600);
+  }, []);
 
   const getFieldValue = useCallback((fieldId: string): string => {
     const sectionKey = fieldId.split(".")[0];
@@ -413,16 +469,17 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
           <button onClick={() => loadPage(pageUrl)}
             className="text-xs text-gray-500 hover:text-gray-800 px-2 py-1 rounded hover:bg-gray-100 shrink-0">↻</button>
         </div>
-        <div className="flex items-center gap-1 px-4 py-1.5 bg-gray-50 border-b border-gray-200 shrink-0">
-          {presetPages.map(p => (
+        <div className="flex items-center gap-1 px-4 py-1.5 bg-gray-50 border-b border-gray-200 shrink-0 overflow-x-auto">
+          {pages.map(p => (
             <button key={p.path} onClick={() => loadPage(p.path)}
-              className={`text-xs px-3 py-1 rounded transition-colors ${pageUrl === p.path ? t.tabActive : "text-gray-600 hover:bg-gray-200"}`}>
+              className={`text-xs px-3 py-1 rounded transition-colors whitespace-nowrap ${pageUrl === p.path ? t.tabActive : "text-gray-600 hover:bg-gray-200"}`}>
               {p.label}
             </button>
           ))}
         </div>
         <iframe ref={iframeRef} src={`${previewBaseUrl}${pageUrl}?_edit=1`}
-          className="flex-1 w-full bg-white" style={{ border: "none" }} title="미리보기" />
+          className="flex-1 w-full bg-white" style={{ border: "none" }} title="미리보기"
+          onLoad={handleIframeLoad} />
       </div>
 
       {/* 오른쪽: 편집 패널 */}
