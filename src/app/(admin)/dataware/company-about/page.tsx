@@ -7,7 +7,7 @@ const PRESET_PAGES = [
   { label: "기업소개", path: "/company" },
 ];
 
-const PREVIEW_URL = process.env.NEXT_PUBLIC_DATAWARE_URL || "http://localhost:3100";
+const PREVIEW_URL = process.env.NEXT_PUBLIC_DATAWARE_SITE_URL || "http://localhost:3001";
 
 export default function DatawarePageEditorPage() {
   return (

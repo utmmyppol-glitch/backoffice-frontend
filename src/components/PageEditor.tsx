@@ -17,6 +17,26 @@ interface PageEditorProps {
   previewBaseUrl: string;
 }
 
+/* ── 사이트별 테마 클래스 (Tailwind JIT 안전) ── */
+const THEME = {
+  union: {
+    btnPrimary: "bg-red-600 hover:bg-red-700 text-white",
+    btnSave: "bg-red-50 text-red-700 hover:bg-red-100",
+    focusRing: "focus:ring-red-500 focus:border-red-500",
+    spinner: "border-t-red-600",
+    tabActive: "bg-red-600 text-white",
+    highlightColor: "#dc2626",
+  },
+  dataware: {
+    btnPrimary: "bg-emerald-600 hover:bg-emerald-700 text-white",
+    btnSave: "bg-emerald-50 text-emerald-700 hover:bg-emerald-100",
+    focusRing: "focus:ring-emerald-500 focus:border-emerald-500",
+    spinner: "border-t-emerald-600",
+    tabActive: "bg-emerald-600 text-white",
+    highlightColor: "#36c88a",
+  },
+};
+
 const TEXTAREA_HINTS = new Set(["desc", "text", "quote", "hoursNote"]);
 const LABEL_MAP: Record<string, string> = {
   title: "제목", accent: "강조 텍스트", desc: "설명", text: "본문",
@@ -153,7 +173,7 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
-  const themeAccent = site === "union" ? "red" : "emerald";
+  const t = THEME[site];
 
   const [pageUrl, setPageUrl] = useState(presetPages[0].path);
   const [urlInput, setUrlInput] = useState(presetPages[0].path);
@@ -225,7 +245,7 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
         const fieldEl = panelRef.current?.querySelector(`[data-field-id="${e.data.id}"]`);
         if (fieldEl) {
           fieldEl.scrollIntoView({ behavior: "smooth", block: "center" });
-          (fieldEl as HTMLElement).style.outline = `2px solid ${site === "union" ? "#dc2626" : "#36c88a"}`;
+          (fieldEl as HTMLElement).style.outline = `2px solid ${t.highlightColor}`;
           (fieldEl as HTMLElement).style.outlineOffset = "4px";
           setTimeout(() => { (fieldEl as HTMLElement).style.outline = ""; (fieldEl as HTMLElement).style.outlineOffset = ""; }, 2000);
           const input = fieldEl.querySelector("input, textarea") as HTMLElement;
@@ -235,7 +255,7 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
     };
     window.addEventListener("message", handler);
     return () => window.removeEventListener("message", handler);
-  }, [loadSectionData, site]);
+  }, [loadSectionData, t.highlightColor]);
 
   const getFieldValue = useCallback((fieldId: string): string => {
     const sectionKey = fieldId.split(".")[0];
@@ -328,14 +348,14 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
           <ImageUploadField value={value} onChange={url => updateField(field.id, url)} site={site} />
         ) : isTextarea ? (
           <textarea value={value} onChange={e => updateField(field.id, e.target.value)} rows={2}
-            className={`w-full border border-gray-300 rounded px-2.5 py-1.5 text-sm focus:ring-2 focus:ring-${themeAccent}-500 focus:border-${themeAccent}-500`} />
+            className={`w-full border border-gray-300 rounded px-2.5 py-1.5 text-sm focus:ring-2 ${t.focusRing}`} />
         ) : (
           <input type="text" value={value} onChange={e => updateField(field.id, e.target.value)}
-            className={`w-full border border-gray-300 rounded px-2.5 py-1.5 text-sm focus:ring-2 focus:ring-${themeAccent}-500 focus:border-${themeAccent}-500`} />
+            className={`w-full border border-gray-300 rounded px-2.5 py-1.5 text-sm focus:ring-2 ${t.focusRing}`} />
         )}
       </div>
     );
-  }, [site, themeAccent, getFieldValue, updateField]);
+  }, [site, t.focusRing, getFieldValue, updateField]);
 
   const renderSection = useCallback((section: SectionGroup) => {
     const paths = section.fields.map(f => f.id.slice(section.key.length + 1));
@@ -384,11 +404,11 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
               value={urlInput}
               onChange={e => setUrlInput(e.target.value)}
               onKeyDown={e => { if (e.key === "Enter") loadPage(urlInput); }}
-              className={`flex-1 text-xs font-mono border border-gray-200 rounded px-2 py-1 focus:ring-1 focus:ring-${themeAccent}-500 focus:border-${themeAccent}-500`}
+              className={`flex-1 text-xs font-mono border border-gray-200 rounded px-2 py-1 focus:ring-1 ${t.focusRing}`}
               placeholder="/company"
             />
             <button onClick={() => loadPage(urlInput)}
-              className={`text-xs text-white bg-${themeAccent}-600 hover:bg-${themeAccent}-700 px-3 py-1 rounded font-medium shrink-0`}>열기</button>
+              className={`text-xs px-3 py-1 rounded font-medium shrink-0 ${t.btnPrimary}`}>열기</button>
           </div>
           <button onClick={() => loadPage(pageUrl)}
             className="text-xs text-gray-500 hover:text-gray-800 px-2 py-1 rounded hover:bg-gray-100 shrink-0">↻</button>
@@ -396,7 +416,7 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
         <div className="flex items-center gap-1 px-4 py-1.5 bg-gray-50 border-b border-gray-200 shrink-0">
           {presetPages.map(p => (
             <button key={p.path} onClick={() => loadPage(p.path)}
-              className={`text-xs px-3 py-1 rounded transition-colors ${pageUrl === p.path ? `bg-${themeAccent}-600 text-white` : "text-gray-600 hover:bg-gray-200"}`}>
+              className={`text-xs px-3 py-1 rounded transition-colors ${pageUrl === p.path ? t.tabActive : "text-gray-600 hover:bg-gray-200"}`}>
               {p.label}
             </button>
           ))}
@@ -418,7 +438,7 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
             </div>
             {dirty.size > 0 && (
               <button onClick={saveAll} disabled={saving !== null}
-                className={`px-4 py-2 bg-${themeAccent}-600 text-white rounded-lg font-medium text-sm hover:bg-${themeAccent}-700 disabled:opacity-50`}>
+                className={`px-4 py-2 rounded-lg font-medium text-sm disabled:opacity-50 ${t.btnPrimary}`}>
                 {saving === "all" ? "저장 중..." : "전체 저장"}
               </button>
             )}
@@ -426,7 +446,7 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
 
           {!loaded && (
             <div className="text-center py-16">
-              <div className={`w-8 h-8 border-2 border-gray-300 border-t-${themeAccent}-600 rounded-full animate-spin mx-auto mb-4`} />
+              <div className={`w-8 h-8 border-2 border-gray-300 ${t.spinner} rounded-full animate-spin mx-auto mb-4`} />
               <p className="text-sm text-gray-500">페이지에서 편집 가능한 필드를 감지하는 중...</p>
               <p className="text-xs text-gray-400 mt-1">페이지에 EditableText가 없으면 필드가 표시되지 않습니다</p>
             </div>
@@ -455,7 +475,7 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
                           className="px-2 py-1 text-xs text-gray-500 hover:bg-gray-100 rounded">이력</button>
                       )}
                       <button onClick={() => saveSection(section.key)} disabled={saving !== null || !dirty.has(section.key)}
-                        className={`px-2.5 py-1 text-xs bg-${themeAccent}-50 text-${themeAccent}-700 rounded hover:bg-${themeAccent}-100 disabled:opacity-40 font-medium`}>
+                        className={`px-2.5 py-1 text-xs rounded disabled:opacity-40 font-medium ${t.btnSave}`}>
                         {saving === section.key ? "..." : "저장"}
                       </button>
                     </div>

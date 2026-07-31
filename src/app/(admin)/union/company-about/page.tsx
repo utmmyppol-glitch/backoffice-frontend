@@ -8,7 +8,7 @@ const PRESET_PAGES = [
   { label: "오시는 길", path: "/company/location" },
 ];
 
-const PREVIEW_URL = process.env.NEXT_PUBLIC_UNION_URL || "http://localhost:3000";
+const PREVIEW_URL = process.env.NEXT_PUBLIC_UNION_SITE_URL || "http://localhost:3000";
 
 export default function UnionPageEditorPage() {
   return (
