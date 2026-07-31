@@ -7,7 +7,8 @@ import { filterMenuForUser } from "@/lib/permissions";
 const datawareMenu = [
   { label: "대시보드", href: "/dataware/dashboard" },
   { label: "메뉴 관리", href: "/dataware/menus" },
-  { label: "콘텐츠 편집", href: "/dataware/contents" },
+  // { label: "콘텐츠 편집", href: "/dataware/contents" }, // 페이지 편집으로 대체
+  { label: "페이지 편집", href: "/dataware/company-about" },
   { label: "게시글 관리", href: "/dataware/posts" },
   { label: "배너 관리", href: "/dataware/banners" },
   { label: "고객사 로고", href: "/dataware/client-logos" },
