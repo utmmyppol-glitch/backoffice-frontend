@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { apiFetch } from "@/lib/api";
 import { getUser } from "@/lib/auth";
 import Link from "next/link";
@@ -36,63 +36,68 @@ export default function DatawareDashboard() {
   const [error, setError] = useState<string | null>(null);
   const user = getUser();
 
-  useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      try {
-        type InqItem = { id: number; name: string; company: string; message: string; status: string; created_at: string };
-        type PostItem = { id: number; title: string; category: string; created_at: string };
+  type InqItem = { id: number; name: string; company: string; message: string; status: string; created_at: string };
+  type PostItem = { id: number; title: string; category: string; created_at: string };
 
-        const [inquiriesRaw, postsRaw, productsRaw, educationsRaw, seminarsRaw, downloadsRaw, storiesRaw] = await Promise.all([
-          apiFetch<Paged<InqItem> | InqItem[]>("/api/admin/dataware/inquiries?page=0&size=5&sort=created_at,desc").catch(() => [] as InqItem[]),
-          apiFetch<Paged<PostItem> | PostItem[]>("/api/admin/dataware/posts?page=0&size=5&sort=created_at,desc").catch(() => [] as PostItem[]),
-          apiFetch<Paged<unknown> | unknown[]>("/api/admin/dataware/products?page=0&size=1").catch(() => []),
-          apiFetch<Paged<unknown> | unknown[]>("/api/admin/dataware/educations?page=0&size=1").catch(() => []),
-          apiFetch<Paged<unknown> | unknown[]>("/api/admin/dataware/seminars?page=0&size=1").catch(() => []),
-          apiFetch<Paged<unknown> | unknown[]>("/api/admin/dataware/downloads?page=0&size=1").catch(() => []),
-          apiFetch<Paged<unknown> | unknown[]>("/api/admin/dataware/customer-stories?page=0&size=1").catch(() => []),
-        ]);
+  const loadData = useCallback(async (isRefresh = false) => {
+    try {
+      if (!isRefresh) setLoading(true);
 
-        if (cancelled) return;
+      const [inquiriesRaw, postsRaw, productsRaw, educationsRaw, seminarsRaw, downloadsRaw, storiesRaw] = await Promise.all([
+        apiFetch<Paged<InqItem> | InqItem[]>("/api/admin/dataware/inquiries?page=0&size=5&sort=created_at,desc").catch(() => [] as InqItem[]),
+        apiFetch<Paged<PostItem> | PostItem[]>("/api/admin/dataware/posts?page=0&size=5&sort=created_at,desc").catch(() => [] as PostItem[]),
+        apiFetch<Paged<unknown> | unknown[]>("/api/admin/dataware/products?page=0&size=1").catch(() => []),
+        apiFetch<Paged<unknown> | unknown[]>("/api/admin/dataware/educations?page=0&size=1").catch(() => []),
+        apiFetch<Paged<unknown> | unknown[]>("/api/admin/dataware/seminars?page=0&size=1").catch(() => []),
+        apiFetch<Paged<unknown> | unknown[]>("/api/admin/dataware/downloads?page=0&size=1").catch(() => []),
+        apiFetch<Paged<unknown> | unknown[]>("/api/admin/dataware/customer-stories?page=0&size=1").catch(() => []),
+      ]);
 
-        const inquiries = normalize(inquiriesRaw);
-        const posts = normalize(postsRaw);
-        const products = normalize(productsRaw);
-        const educations = normalize(educationsRaw);
-        const seminars = normalize(seminarsRaw);
-        const downloads = normalize(downloadsRaw);
-        const stories = normalize(storiesRaw);
+      const inquiries = normalize(inquiriesRaw);
+      const posts = normalize(postsRaw);
+      const products = normalize(productsRaw);
+      const educations = normalize(educationsRaw);
+      const seminars = normalize(seminarsRaw);
+      const downloads = normalize(downloadsRaw);
+      const stories = normalize(storiesRaw);
 
-        let totalNew = inquiries.content.filter(i => i.status === "NEW").length;
-        if (inquiries.totalElements > 5 && totalNew > 0) {
-          try {
-            const allInqRaw = await apiFetch<Paged<{ status: string }> | { status: string }[]>("/api/admin/dataware/inquiries?page=0&size=100");
-            const allInq = normalize(allInqRaw);
-            totalNew = allInq.content.filter(i => i.status === "NEW").length;
-          } catch { /* keep estimate */ }
-        }
-
-        setData({
-          totalInquiries: inquiries.totalElements,
-          newInquiries: totalNew,
-          totalPosts: posts.totalElements,
-          totalProducts: products.totalElements,
-          totalEducations: educations.totalElements,
-          totalSeminars: seminars.totalElements,
-          totalDownloads: downloads.totalElements,
-          totalStories: stories.totalElements,
-          recentInquiries: inquiries.content.slice(0, 5),
-          recentPosts: posts.content.slice(0, 5),
-        });
-      } catch (e) {
-        if (!cancelled) setError(e instanceof Error ? e.message : "데이터 로딩 실패");
-      } finally {
-        if (!cancelled) setLoading(false);
+      let totalNew = inquiries.content.filter(i => i.status === "NEW").length;
+      if (inquiries.totalElements > 5 && totalNew > 0) {
+        try {
+          const allInqRaw = await apiFetch<Paged<{ status: string }> | { status: string }[]>("/api/admin/dataware/inquiries?page=0&size=100");
+          const allInq = normalize(allInqRaw);
+          totalNew = allInq.content.filter(i => i.status === "NEW").length;
+        } catch { /* keep estimate */ }
       }
+
+      setData({
+        totalInquiries: inquiries.totalElements,
+        newInquiries: totalNew,
+        totalPosts: posts.totalElements,
+        totalProducts: products.totalElements,
+        totalEducations: educations.totalElements,
+        totalSeminars: seminars.totalElements,
+        totalDownloads: downloads.totalElements,
+        totalStories: stories.totalElements,
+        recentInquiries: inquiries.content.slice(0, 5),
+        recentPosts: posts.content.slice(0, 5),
+      });
+    } catch (e) {
+      if (!isRefresh) setError(e instanceof Error ? e.message : "데이터 로딩 실패");
+    } finally {
+      setLoading(false);
     }
-    load();
-    return () => { cancelled = true; };
   }, []);
+
+  // 초기 로드
+  useEffect(() => { loadData(); }, [loadData]);
+
+  // 탭/윈도우 포커스 시 자동 갱신
+  useEffect(() => {
+    const onFocus = () => { loadData(true); };
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [loadData]);
 
   if (loading) {
     return (
