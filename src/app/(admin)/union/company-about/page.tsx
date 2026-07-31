@@ -11,8 +11,10 @@ interface HistoryEntry { id: number; contentId: number; bodyHtml: string; edited
 
 interface SectionDef<T> { key: string; label: string; default: T; itemTemplate?: Record<string, string>; }
 
-/* ── 섹션 정의 ── */
-const SECTIONS: SectionDef<unknown>[] = [
+/* ── 페이지 정의 ── */
+interface PageDef { id: string; label: string; path: string; sections: SectionDef<unknown>[]; }
+
+const COMPANY_SECTIONS: SectionDef<unknown>[] = [
   { key: "company_hero", label: "히어로 섹션", default: { title: "복잡한 기업 IT를", accent: "하나로 연결", desc: "열정과 전문성을 바탕으로 소프트웨어 유통은 물론, 보안 및 데이터 사업까지 확대하며 제2의 도약을 실현해 가고 있습니다." } },
   { key: "company_overview", label: "회사 개요", default: { title: "IT Solution & Consulting 전문기업", text: "주식회사 유니온시스템즈는 2010년 4월 유니온소프트를 시작으로 기업·공공기관을 대상으로 고객의 IT 환경에 필요한 SW, 솔루션을 공급하여 최적의 IT 인프라를 만들어 온 IT Solution & Consulting 전문기업입니다." } },
   { key: "company_stats", label: "통계 숫자", default: [{ num: "16", label: "년 업력" }, { num: "200+", label: "고객사" }, { num: "4", label: "전문 사업부" }, { num: "50+", label: "파트너사" }], itemTemplate: { num: "", label: "" } },
@@ -33,12 +35,30 @@ const SECTIONS: SectionDef<unknown>[] = [
   { key: "company_cta", label: "CTA 섹션", default: { title: "유니온시스템즈와 함께 시작하세요", desc: "귀사의 IT 환경에 최적화된 솔루션을 제안해 드립니다." } },
 ];
 
+const LOCATION_SECTIONS: SectionDef<unknown>[] = [
+  { key: "location_hero", label: "히어로 섹션", default: { title: "오시는 길", subtitle: "서울 성수동에서 여러분을 기다리고 있습니다." } },
+  { key: "location_address", label: "주소", default: { line1: "서울시 성동구 아차산로17길 49", line2: "1209~1210호 (성수동2가, 생각공장데시앙플렉스)", mapNote: "성수역 3번 출구 도보 5분" } },
+  { key: "location_contact", label: "연락처 / 운영시간", default: { tel: "02-706-8999", fax: "02-706-8990", emailSales: "sales@unionsystems.co.kr", emailGeneral: "ud@unionsystems.co.kr", hours: "09:00 – 18:00", hoursNote: "평일 운영 · 점심 12:00–13:00 · 주말/공휴일 휴무" } },
+  { key: "location_subway", label: "교통 — 지하철", default: [{ line: "2호선 성수역", desc: "3번 출구 도보 5분" }, { line: "수인분당선 서울숲역", desc: "4번 출구 도보 10분" }], itemTemplate: { line: "", desc: "" } },
+  { key: "location_bus", label: "교통 — 버스", default: [{ type: "간선버스", routes: "141, 148, 302, 421" }, { type: "지선버스", routes: "2016, 2224, 2413" }], itemTemplate: { type: "", routes: "" } },
+  { key: "location_parking", label: "교통 — 주차", default: { title: "건물 내 지하주차장", desc: "방문 시 안내데스크 문의" } },
+  { key: "location_cta", label: "CTA 문구", default: { text: "방문 전 사전 연락을 부탁드립니다." } },
+];
+
+const PAGES: PageDef[] = [
+  { id: "company", label: "기업소개", path: "/company", sections: COMPANY_SECTIONS },
+  { id: "location", label: "오시는 길", path: "/company/location", sections: LOCATION_SECTIONS },
+];
+
 const IMAGE_FIELDS = new Set(["img"]);
 const TEXTAREA_FIELDS = new Set(["desc", "text", "quote"]);
 const LABEL_MAP: Record<string, string> = {
   title: "제목", accent: "강조 텍스트", desc: "설명", text: "본문",
   subtitle: "부제", quote: "인용문", ceo: "CEO", img: "이미지",
   num: "숫자", label: "라벨", name: "이름",
+  line1: "주소 1줄", line2: "주소 2줄", mapNote: "지도 안내문",
+  tel: "전화", fax: "팩스", emailSales: "영업 이메일", emailGeneral: "대표 이메일",
+  hours: "운영시간", hoursNote: "운영 안내", line: "노선", type: "종류", routes: "노선번호",
 };
 const PREVIEW_URL = process.env.NEXT_PUBLIC_UNION_URL || "http://localhost:3000";
 
@@ -168,12 +188,15 @@ function CompanyAboutEditor() {
   const { toast } = useToast();
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const formRef = useRef<HTMLDivElement>(null);
+  const [activePage, setActivePage] = useState(PAGES[0]);
   const [data, setData] = useState<Record<string, unknown>>({});
   const [contentIds, setContentIds] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
   const [historyTarget, setHistoryTarget] = useState<string | null>(null);
   const [codeView, setCodeView] = useState<Set<string>>(new Set());
+
+  const SECTIONS = activePage.sections;
 
   const toggleCode = useCallback((key: string) => {
     setCodeView((prev) => {
@@ -195,13 +218,14 @@ function CompanyAboutEditor() {
     } catch { /* 유효한 JSON이 아니면 무시 */ }
   }, [sendToPreview]);
 
-  // 초기 로딩
+  // 초기 로딩 — 모든 페이지의 섹션을 한 번에 불러옴
+  const allSections = PAGES.flatMap((p) => p.sections);
   useEffect(() => {
     apiFetch<ContentResponse[]>("/api/admin/union/contents")
       .then((contents) => {
         const map: Record<string, unknown> = {};
         const ids: Record<string, number> = {};
-        for (const section of SECTIONS) {
+        for (const section of allSections) {
           const found = contents.find((c) => c.regionKey === section.key);
           if (found) {
             ids[section.key] = found.id;
@@ -215,10 +239,11 @@ function CompanyAboutEditor() {
       })
       .catch(() => {
         const map: Record<string, unknown> = {};
-        for (const s of SECTIONS) map[s.key] = s.default;
+        for (const s of allSections) map[s.key] = s.default;
         setData(map);
       })
       .finally(() => setLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // field-click 수신
@@ -266,7 +291,7 @@ function CompanyAboutEditor() {
       toast("success", "모든 섹션이 저장되었습니다");
     } catch { toast("error", "저장 중 오류가 발생했습니다"); }
     finally { setSaving(null); }
-  }, [data, toast]);
+  }, [data, toast, SECTIONS]);
 
   const updateObject = useCallback((sectionKey: string, fieldKey: string, value: string) => {
     setData((prev) => {
@@ -319,7 +344,7 @@ function CompanyAboutEditor() {
     const defaultCopy = JSON.parse(JSON.stringify(section.default));
     setData((prev) => ({ ...prev, [sectionKey]: defaultCopy }));
     sendToPreview(sectionKey, defaultCopy);
-  }, [sendToPreview]);
+  }, [sendToPreview, SECTIONS]);
 
   const handleHistoryRevert = useCallback((sectionKey: string, historyData: unknown) => {
     setData((prev) => ({ ...prev, [sectionKey]: historyData }));
@@ -338,20 +363,41 @@ function CompanyAboutEditor() {
         <div className="flex items-center justify-between px-4 py-2 bg-white border-b border-gray-200 shrink-0">
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-red-400" /><div className="w-3 h-3 rounded-full bg-yellow-400" /><div className="w-3 h-3 rounded-full bg-green-400" />
-            <span className="ml-2 text-xs text-gray-400 font-mono">{PREVIEW_URL}/company</span>
+            <span className="ml-2 text-xs text-gray-400 font-mono">{PREVIEW_URL}{activePage.path}</span>
           </div>
-          <button onClick={() => { if (iframeRef.current) iframeRef.current.src = `${PREVIEW_URL}/company?_edit=1&t=${Date.now()}`; }}
+          <button onClick={() => { if (iframeRef.current) iframeRef.current.src = `${PREVIEW_URL}${activePage.path}?_edit=1&t=${Date.now()}`; }}
             className="text-xs text-gray-500 hover:text-gray-800 px-2 py-1 rounded hover:bg-gray-100">↻ 새로고침</button>
         </div>
-        <iframe ref={iframeRef} src={`${PREVIEW_URL}/company?_edit=1`} className="flex-1 w-full bg-white" style={{ border: "none" }} title="회사소개 미리보기" />
+        <iframe ref={iframeRef} src={`${PREVIEW_URL}${activePage.path}?_edit=1`} className="flex-1 w-full bg-white" style={{ border: "none" }} title={`${activePage.label} 미리보기`} />
       </div>
 
       {/* ── 오른쪽: 편집 폼 ── */}
       <div ref={formRef} className="overflow-y-auto" style={{ width: 460 }}>
         <div className="p-5">
+          {/* 페이지 선택 탭 */}
+          <div className="flex gap-1 mb-4 border-b border-gray-200 pb-0">
+            {PAGES.map((page) => (
+              <button
+                key={page.id}
+                onClick={() => {
+                  setActivePage(page);
+                  setCodeView(new Set());
+                  if (iframeRef.current) iframeRef.current.src = `${PREVIEW_URL}${page.path}?_edit=1&t=${Date.now()}`;
+                }}
+                className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                  activePage.id === page.id
+                    ? "border-emerald-600 text-emerald-700"
+                    : "border-transparent text-gray-500 hover:text-gray-800"
+                }`}
+              >
+                {page.label}
+              </button>
+            ))}
+          </div>
+
           <div className="flex items-center justify-between mb-5">
             <div>
-              <h1 className="text-lg font-bold text-gray-900">회사소개 편집</h1>
+              <h1 className="text-lg font-bold text-gray-900">{activePage.label} 편집</h1>
               <p className="text-xs text-gray-500 mt-0.5">실시간 미리보기 · 클릭→스크롤 · 이력 관리</p>
             </div>
             <button onClick={handleSaveAll} disabled={saving !== null}
