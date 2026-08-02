@@ -199,7 +199,11 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
   const t = THEME[site];
 
   const [menuPages, setMenuPages] = useState<{ label: string; path: string }[]>([]);
-  const pages = menuPages.length > 0 ? menuPages : presetPages;
+  const pages = (() => {
+    const src = menuPages.length > 0 ? menuPages : presetPages;
+    const seen = new Set<string>();
+    return src.filter(p => { if (seen.has(p.path)) return false; seen.add(p.path); return true; });
+  })();
 
   const [pageUrl, setPageUrl] = useState(presetPages[0].path);
   const [urlInput, setUrlInput] = useState(presetPages[0].path);
