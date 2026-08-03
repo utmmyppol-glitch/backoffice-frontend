@@ -19,6 +19,7 @@ export async function apiFetch<T>(
   const res = await fetch(`${API_URL}${path}`, {
     ...options,
     headers,
+    cache: "no-store",
   });
 
   if (res.status === 401 || res.status === 403) {
