@@ -56,7 +56,7 @@ export default function ClientLogoManager({ site }: ClientLogoManagerProps) {
     { key: "sort_order", label: "순서", width: "70px", render: (item) => item.sort_order },
     {
       key: "is_active", label: "노출", width: "80px",
-      render: (item) => <ToggleSwitch checked={item.is_active} onChange={() => res.patch(item.id, { is_active: !item.is_active })} />,
+      render: (item) => <ToggleSwitch checked={item.is_active} onChange={() => res.patch(item.id, { ...item, is_active: !item.is_active })} />,
     },
     {
       key: "actions", label: "", width: "100px",

@@ -76,7 +76,7 @@ export default function ProductManager() {
     { key: "sort_order", label: "순서", width: "70px", render: (item) => item.sort_order },
     {
       key: "published", label: "노출", width: "80px",
-      render: (item) => <ToggleSwitch checked={item.published} onChange={() => res.patch(item.id, { published: !item.published })} />,
+      render: (item) => <ToggleSwitch checked={item.published} onChange={() => res.patch(item.id, { ...item, published: !item.published })} />,
     },
     {
       key: "actions", label: "", width: "100px",

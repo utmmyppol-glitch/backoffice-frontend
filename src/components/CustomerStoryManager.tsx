@@ -60,7 +60,7 @@ export default function CustomerStoryManager({ site }: CustomerStoryManagerProps
     { key: "industry", label: "산업", width: "110px", render: (item) => item.industry || "-" },
     {
       key: "published", label: "노출", width: "80px",
-      render: (item) => <ToggleSwitch checked={item.published} onChange={() => res.patch(item.id, { published: !item.published })} />,
+      render: (item) => <ToggleSwitch checked={item.published} onChange={() => res.patch(item.id, { ...item, published: !item.published })} />,
     },
     { key: "updated_at", label: "수정일", width: "110px", render: (item) => formatDate(item.updated_at) },
     {

@@ -92,7 +92,7 @@ export default function PostManager({ site }: PostManagerProps) {
     },
     {
       key: "published", label: "노출", width: "80px",
-      render: (item) => <ToggleSwitch checked={item.published} onChange={() => res.patch(item.id, { published: !item.published })} />,
+      render: (item) => <ToggleSwitch checked={item.published} onChange={() => res.patch(item.id, { ...item, published: !item.published })} />,
     },
     { key: "created_at", label: "작성일", width: "110px", render: (item) => formatDate(item.created_at) },
     {
