@@ -616,10 +616,9 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
           <div className="flex items-center justify-between mb-5">
             <div>
               <h1 className="text-lg font-bold text-gray-900">페이지 편집</h1>
-              <p className="text-xs text-gray-500 mt-0.5">
-                {loaded ? `${sections.length}개 섹션 · ${manifest.length}개 필드` : "페이지 로딩 중..."}
-                {dirty.size > 0 && <span className="ml-2 text-amber-600">· {dirty.size}개 미저장</span>}
-              </p>
+              {dirty.size > 0 && (
+                <p className="text-xs text-amber-600 mt-0.5">{dirty.size}개 미저장</p>
+              )}
             </div>
             {dirty.size > 0 && (
               <button onClick={saveAll} disabled={saving !== null}
