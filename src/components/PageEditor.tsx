@@ -371,6 +371,26 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
     finally { setSaving(null); }
   }, [site, dirty, sectionData, toast]);
 
+  /* ── Ctrl+S 전체 저장 ── */
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+        e.preventDefault();
+        saveAll();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [saveAll]);
+
+  /* ── 미저장 이탈 경고 ── */
+  useEffect(() => {
+    if (dirty.size === 0) return;
+    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [dirty.size]);
+
   const handleHistoryRevert = useCallback((sectionKey: string, historyData: unknown) => {
     setSectionData(prev => ({ ...prev, [sectionKey]: historyData }));
     iframeRef.current?.contentWindow?.postMessage(
