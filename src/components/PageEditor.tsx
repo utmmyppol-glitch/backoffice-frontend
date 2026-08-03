@@ -348,9 +348,11 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
       setContentIds(prev => ({ ...prev, [sectionKey]: res.id }));
       setDirty(prev => { const n = new Set(prev); n.delete(sectionKey); return n; });
       toast("success", `${formatSectionKey(sectionKey)} 저장됨`);
+      loadedRef.current = false;
+      if (iframeRef.current) iframeRef.current.src = `${previewBaseUrl}${pageUrl}?_edit=1&t=${Date.now()}`;
     } catch { toast("error", "저장 실패"); }
     finally { setSaving(null); }
-  }, [site, sectionData, toast]);
+  }, [site, sectionData, toast, previewBaseUrl, pageUrl]);
 
   const saveAll = useCallback(async () => {
     const dirtyKeys = Array.from(dirty);
@@ -368,9 +370,11 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
       }
       setDirty(new Set());
       toast("success", "모든 변경사항 저장됨");
+      loadedRef.current = false;
+      if (iframeRef.current) iframeRef.current.src = `${previewBaseUrl}${pageUrl}?_edit=1&t=${Date.now()}`;
     } catch { toast("error", "저장 중 오류 발생"); }
     finally { setSaving(null); }
-  }, [site, dirty, sectionData, toast]);
+  }, [site, dirty, sectionData, toast, previewBaseUrl, pageUrl]);
 
   /* ── Ctrl+S 전체 저장 ── */
   useEffect(() => {
@@ -490,6 +494,9 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
                 className={`text-[11px] px-1.5 py-0.5 rounded transition-colors ${viewportMode === mode ? "bg-gray-800 text-white" : "text-gray-400 hover:text-gray-700 hover:bg-gray-100"}`}
                 title={label}>{icon}</button>
             ))}
+            <a href={`${previewBaseUrl}${pageUrl}`} target="_blank" rel="noopener noreferrer"
+              className="text-[11px] px-1.5 py-0.5 rounded text-gray-400 hover:text-gray-700 hover:bg-gray-100 ml-0.5"
+              title="실제 사이트에서 열기">↗</a>
           </div>
         </div>
         <div className="flex-1 flex items-start justify-center bg-gray-100 overflow-auto">
