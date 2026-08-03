@@ -454,6 +454,54 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
   }, [toast]);
 
 
+  /* ── 배열 섹션 항목 조작 ── */
+  const arrayItemAction = useCallback((sectionKey: string, action: "add" | "delete" | "up" | "down", idx?: number) => {
+    setSectionData(prev => {
+      const arr = prev[sectionKey];
+      if (!Array.isArray(arr)) return prev;
+      const clone = JSON.parse(JSON.stringify(arr)) as Record<string, string>[];
+
+      if (action === "add") {
+        const template: Record<string, string> = {};
+        if (clone.length > 0) {
+          for (const key of Object.keys(clone[0])) template[key] = "";
+        }
+        clone.push(template);
+      } else if (action === "delete" && idx !== undefined) {
+        clone.splice(idx, 1);
+      } else if (action === "up" && idx !== undefined && idx > 0) {
+        [clone[idx - 1], clone[idx]] = [clone[idx], clone[idx - 1]];
+      } else if (action === "down" && idx !== undefined && idx < clone.length - 1) {
+        [clone[idx], clone[idx + 1]] = [clone[idx + 1], clone[idx]];
+      } else {
+        return prev;
+      }
+
+      // manifest 재구성
+      const newFields: ManifestField[] = [];
+      for (const f of manifest) {
+        if (!f.id.startsWith(sectionKey + ".")) { newFields.push(f); continue; }
+        const path = f.id.slice(sectionKey.length + 1);
+        if (!/^\d+\./.test(path)) { newFields.push(f); continue; }
+      }
+      clone.forEach((item, i) => {
+        for (const [k, v] of Object.entries(item)) {
+          newFields.push({ id: `${sectionKey}.${i}.${k}`, type: "text", value: String(v) });
+        }
+      });
+      setManifest(newFields);
+
+      setTimeout(() => {
+        iframeRef.current?.contentWindow?.postMessage(
+          { type: "content-update", section: sectionKey, data: clone }, "*"
+        );
+      }, 0);
+
+      setDirty(p => new Set(p).add(sectionKey));
+      return { ...prev, [sectionKey]: clone };
+    });
+  }, [manifest]);
+
   const renderField = useCallback((field: ManifestField) => {
     const path = field.id.split(".").slice(1).join(".");
     const value = getFieldValue(field.id);
@@ -502,20 +550,36 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
           items.get(-1)!.push(f);
         }
       }
+      const sorted = Array.from(items.entries()).filter(([i]) => i >= 0).sort(([a], [b]) => a - b);
+      const total = sorted.length;
       return (
         <div className="space-y-2">
-          {Array.from(items.entries()).sort(([a], [b]) => a - b).map(([idx, fields]) => (
+          {sorted.map(([idx, fields]) => (
             <div key={idx} className="border border-gray-200 rounded p-3 bg-gray-50">
-              {idx >= 0 && <p className="text-xs font-bold text-gray-400 mb-2">#{idx + 1}</p>}
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs font-bold text-gray-400">#{idx + 1}</p>
+                <div className="flex items-center gap-1">
+                  <button onClick={() => arrayItemAction(section.key, "up", idx)} disabled={idx === 0}
+                    className="text-[11px] text-gray-400 hover:text-gray-700 disabled:opacity-30 px-1" title="위로">↑</button>
+                  <button onClick={() => arrayItemAction(section.key, "down", idx)} disabled={idx === total - 1}
+                    className="text-[11px] text-gray-400 hover:text-gray-700 disabled:opacity-30 px-1" title="아래로">↓</button>
+                  <button onClick={() => { if (confirm(`항목 #${idx + 1}을 삭제할까요?`)) arrayItemAction(section.key, "delete", idx); }}
+                    className="text-[11px] text-red-400 hover:text-red-600 px-1 ml-1" title="삭제">✕</button>
+                </div>
+              </div>
               {fields.map(f => renderField(f))}
             </div>
           ))}
+          <button onClick={() => arrayItemAction(section.key, "add")}
+            className="w-full py-2 text-xs text-gray-500 hover:text-gray-800 hover:bg-gray-100 border border-dashed border-gray-300 rounded transition-colors">
+            + 항목 추가
+          </button>
         </div>
       );
     }
 
     return <div>{section.fields.map(f => renderField(f))}</div>;
-  }, [renderField]);
+  }, [renderField, arrayItemAction]);
 
   return (
     <div className="flex" style={{ height: "calc(100vh - 56px)", margin: "-24px" }}>
