@@ -50,6 +50,17 @@ const LABEL_MAP: Record<string, string> = {
 };
 
 /* ── 유틸 ── */
+function stripHtml(s: string): string {
+  if (!/<[a-z][\s\S]*>/i.test(s)) return s;
+  // 블록 경계(<p>, <br>, <div>)를 공백으로 → 태그 제거 → 정리
+  return s
+    .replace(/<\/?(p|div|br|li|h[1-6])[^>]*\/?>/gi, " ")
+    .replace(/<[^>]*>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function decodeHtmlEntities(s: string): string {
   return s.replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'");
 }
@@ -460,7 +471,7 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
     const path = field.id.split(".").slice(1).join(".");
     const value = getFieldValue(field.id);
     const lastSegment = field.id.split(".").pop() || "";
-    const isTextarea = TEXTAREA_HINTS.has(lastSegment) || value.length > 60;
+    const isTextarea = TEXTAREA_HINTS.has(lastSegment);
 
     return (
       <div key={field.id} data-field-id={field.id} className="mb-3"
@@ -476,7 +487,7 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
         ) : isTextarea ? (
           <RichEditor value={value} onChange={html => updateField(field.id, html)} />
         ) : (
-          <input type="text" value={value} onChange={e => updateField(field.id, e.target.value)}
+          <input type="text" value={stripHtml(value)} onChange={e => updateField(field.id, e.target.value)}
             className={`w-full border border-gray-300 rounded px-2.5 py-1.5 text-sm focus:ring-2 ${t.focusRing}`} />
         )}
       </div>
