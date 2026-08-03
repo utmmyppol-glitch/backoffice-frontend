@@ -168,6 +168,8 @@ function HistoryModal({ site, contentId, onRevert, onClose }: {
 /* ══════════════════════════════════════════════════
    메인 — 제네릭 페이지 편집기 (사이트 공용)
    ══════════════════════════════════════════════════ */
+const PANEL_KEY = "page-editor-panel";
+
 export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEditorProps) {
   const { toast } = useToast();
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -175,6 +177,19 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
   const loadedRef = useRef(false);
 
   const t = THEME[site];
+
+  /* ── 패널 접기/펼치기 ── */
+  const [panelOpen, setPanelOpen] = useState(() => {
+    if (typeof window === "undefined") return true;
+    return localStorage.getItem(PANEL_KEY) !== "collapsed";
+  });
+  const togglePanel = useCallback(() => {
+    setPanelOpen(prev => {
+      const next = !prev;
+      localStorage.setItem(PANEL_KEY, next ? "expanded" : "collapsed");
+      return next;
+    });
+  }, []);
 
   const [pageUrl, setPageUrl] = useState(presetPages[0].path);
   const [urlInput, setUrlInput] = useState(presetPages[0].path);
@@ -436,9 +451,27 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
           onLoad={handleIframeLoad} />
       </div>
 
+      {/* 패널 토글 핸들 */}
+      <button
+        onClick={togglePanel}
+        className="shrink-0 flex items-center justify-center border-r border-gray-200 bg-gray-50 hover:bg-gray-200 transition-colors cursor-pointer"
+        style={{ width: 24 }}
+        title={panelOpen ? "패널 접기" : "패널 펼치기"}
+      >
+        <span className="text-gray-400 text-[11px] select-none">{panelOpen ? "»" : "«"}</span>
+      </button>
+
       {/* 오른쪽: 편집 패널 */}
-      <div ref={panelRef} className="overflow-y-auto" style={{ width: 460, minWidth: 460, flexShrink: 0 }}>
-        <div className="p-5">
+      <div
+        ref={panelRef}
+        className="overflow-y-auto overflow-x-hidden transition-[width,min-width] duration-200"
+        style={{
+          width: panelOpen ? 460 : 0,
+          minWidth: panelOpen ? 460 : 0,
+          flexShrink: 0,
+        }}
+      >
+        <div className="p-5" style={{ width: 460 }}>
           <div className="flex items-center justify-between mb-5">
             <div>
               <h1 className="text-lg font-bold text-gray-900">페이지 편집</h1>
