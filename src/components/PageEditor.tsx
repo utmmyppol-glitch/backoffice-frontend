@@ -183,7 +183,7 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
 
   const t = THEME[site];
 
-  /* ── 패널 접기/펼치기 ── */
+  /* ── 패널 접기/펼치기 + 드래그 리사이즈 ── */
   const [panelOpen, setPanelOpen] = useState(() => {
     if (typeof window === "undefined") return true;
     return localStorage.getItem(PANEL_KEY) !== "collapsed";
@@ -195,6 +195,34 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
       return next;
     });
   }, []);
+
+  const PANEL_WIDTH_KEY = "page-editor-panel-width";
+  const [panelWidth, setPanelWidth] = useState(() => {
+    if (typeof window === "undefined") return 460;
+    const saved = localStorage.getItem(PANEL_WIDTH_KEY);
+    return saved ? Math.max(320, Math.min(760, Number(saved))) : 460;
+  });
+  const [dragging, setDragging] = useState(false);
+
+  const handleDragStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setDragging(true);
+    const startX = e.clientX;
+    const startW = panelWidth;
+    const onMove = (ev: MouseEvent) => {
+      const delta = startX - ev.clientX;
+      const next = Math.max(320, Math.min(760, startW + delta));
+      setPanelWidth(next);
+    };
+    const onUp = () => {
+      setDragging(false);
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+      setPanelWidth(w => { localStorage.setItem(PANEL_WIDTH_KEY, String(w)); return w; });
+    };
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+  }, [panelWidth]);
 
   const [pageUrl, setPageUrl] = useState(presetPages[0].path);
   const [urlInput, setUrlInput] = useState(presetPages[0].path);
@@ -528,33 +556,46 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
               width: viewportMode === "tablet" ? 768 : viewportMode === "mobile" ? 390 : "100%",
               maxWidth: "100%",
               boxShadow: viewportMode !== "desktop" ? "0 0 0 1px rgba(0,0,0,.1)" : "none",
+              pointerEvents: dragging ? "none" : "auto",
             }}
             title="미리보기"
             onLoad={handleIframeLoad} />
         </div>
       </div>
 
-      {/* 패널 토글 핸들 */}
-      <button
-        onClick={togglePanel}
-        className="shrink-0 flex items-center justify-center border-r border-gray-200 bg-gray-50 hover:bg-gray-200 transition-colors cursor-pointer"
-        style={{ width: 24 }}
-        title={panelOpen ? "패널 접기" : "패널 펼치기"}
-      >
-        <span className="text-gray-400 text-[11px] select-none">{panelOpen ? "»" : "«"}</span>
-      </button>
+      {/* 패널 토글 + 드래그 핸들 */}
+      <div className="shrink-0 flex" style={{ cursor: panelOpen ? "col-resize" : undefined }}>
+        <button
+          onClick={togglePanel}
+          className="flex items-center justify-center bg-gray-50 hover:bg-gray-200 transition-colors cursor-pointer"
+          style={{ width: 18 }}
+          title={panelOpen ? "패널 접기" : "패널 펼치기"}
+        >
+          <span className="text-gray-400 text-[11px] select-none">{panelOpen ? "»" : "«"}</span>
+        </button>
+        {panelOpen && (
+          <div
+            onMouseDown={handleDragStart}
+            className="group flex items-center justify-center hover:bg-blue-100 transition-colors"
+            style={{ width: 6, cursor: "col-resize" }}
+            title="드래그로 폭 조절"
+          >
+            <div className="w-[2px] h-8 bg-gray-300 rounded group-hover:bg-blue-400 transition-colors" />
+          </div>
+        )}
+      </div>
 
       {/* 오른쪽: 편집 패널 */}
       <div
         ref={panelRef}
-        className="overflow-y-auto overflow-x-hidden transition-[width,min-width] duration-200"
+        className={`overflow-y-auto overflow-x-hidden ${dragging ? "" : "transition-[width,min-width] duration-200"}`}
         style={{
-          width: panelOpen ? 460 : 0,
-          minWidth: panelOpen ? 460 : 0,
+          width: panelOpen ? panelWidth : 0,
+          minWidth: panelOpen ? panelWidth : 0,
           flexShrink: 0,
         }}
       >
-        <div className="p-5" style={{ width: 460 }}>
+        <div className="p-5" style={{ width: panelWidth }}>
           <div className="flex items-center justify-between mb-5">
             <div>
               <h1 className="text-lg font-bold text-gray-900">페이지 편집</h1>
