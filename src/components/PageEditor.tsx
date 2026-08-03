@@ -290,6 +290,10 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
     setTimeout(poll, 600);
   }, []);
 
+  const postToIframe = useCallback((msg: Record<string, unknown>) => {
+    try { iframeRef.current?.contentWindow?.postMessage(msg, "*"); } catch { /* ignore */ }
+  }, []);
+
   const getFieldValue = useCallback((fieldId: string): string => {
     const sectionKey = fieldId.split(".")[0];
     const path = fieldId.slice(sectionKey.length + 1);
@@ -375,8 +379,14 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
     const isTextarea = TEXTAREA_HINTS.has(lastSegment) || value.length > 60;
 
     return (
-      <div key={field.id} data-field-id={field.id} className="mb-3">
-        <label className="block text-xs font-medium text-gray-500 mb-1">{fieldLabel(path)}</label>
+      <div key={field.id} data-field-id={field.id} className="mb-3"
+        onMouseEnter={() => postToIframe({ type: "highlight-field", id: field.id })}
+        onMouseLeave={() => postToIframe({ type: "clear-highlight", id: field.id })}
+      >
+        <label
+          className="block text-xs font-medium text-gray-500 mb-1 cursor-pointer hover:text-gray-800"
+          onClick={() => postToIframe({ type: "scroll-to-field", id: field.id })}
+        >{fieldLabel(path)}</label>
         {field.type === "image" ? (
           <ImageUploadField value={value} onChange={url => updateField(field.id, url)} site={site} />
         ) : isTextarea ? (
@@ -388,7 +398,7 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
         )}
       </div>
     );
-  }, [site, t.focusRing, getFieldValue, updateField]);
+  }, [site, t.focusRing, getFieldValue, updateField, postToIframe]);
 
   const renderSection = useCallback((section: SectionGroup) => {
     const paths = section.fields.map(f => f.id.slice(section.key.length + 1));
