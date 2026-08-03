@@ -195,6 +195,7 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
   const { toast } = useToast();
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const loadedRef = useRef(false);
 
   const t = THEME[site];
 
@@ -231,6 +232,7 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
     setUrlInput(path);
     setManifest([]);
     setLoaded(false);
+    loadedRef.current = false;
     setDirty(new Set());
     if (iframeRef.current) {
       iframeRef.current.src = `${previewBaseUrl}${path}?_edit=1&t=${Date.now()}`;
@@ -288,6 +290,7 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
         setDirty(new Set());
         setManifest(fields);
         setLoaded(true);
+        loadedRef.current = true;
         const keys = Array.from(new Set(fields.map(f => f.id.split(".")[0])));
         loadSectionData(keys);
       }
@@ -307,14 +310,19 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
     return () => window.removeEventListener("message", handler);
   }, [loadSectionData, t.highlightColor]);
 
-  /* iframe 로드 완료 시 manifest 재요청 (타이밍 엣지 케이스 방지) */
+  /* iframe 로드 완료 시 manifest 재요청 (반복 폴링으로 타이밍 문제 방지) */
   const handleIframeLoad = useCallback(() => {
-    setTimeout(() => {
-      if (!iframeRef.current) return;
+    let attempts = 0;
+    const maxAttempts = 8;
+    const poll = () => {
+      if (!iframeRef.current || attempts >= maxAttempts || loadedRef.current) return;
+      attempts++;
       try {
         iframeRef.current.contentWindow?.postMessage({ type: "request-manifest" }, "*");
       } catch { /* cross-origin 접근 실패 무시 */ }
-    }, 600);
+      setTimeout(poll, 500);
+    };
+    setTimeout(poll, 600);
   }, []);
 
   const getFieldValue = useCallback((fieldId: string): string => {
@@ -453,7 +461,7 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
   return (
     <div className="flex" style={{ height: "calc(100vh - 56px)", margin: "-24px" }}>
       {/* 왼쪽: 미리보기 */}
-      <div className="flex-1 border-r border-gray-200 flex flex-col bg-gray-100">
+      <div className="flex-1 border-r border-gray-200 flex flex-col bg-gray-100" style={{ minWidth: 0, overflow: "hidden" }}>
         <div className="flex items-center gap-2 px-4 py-2 bg-white border-b border-gray-200 shrink-0">
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-red-400" /><div className="w-3 h-3 rounded-full bg-yellow-400" /><div className="w-3 h-3 rounded-full bg-green-400" />
@@ -487,7 +495,7 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
       </div>
 
       {/* 오른쪽: 편집 패널 */}
-      <div ref={panelRef} className="overflow-y-auto" style={{ width: 460 }}>
+      <div ref={panelRef} className="overflow-y-auto" style={{ width: 460, minWidth: 460, flexShrink: 0 }}>
         <div className="p-5">
           <div className="flex items-center justify-between mb-5">
             <div>
