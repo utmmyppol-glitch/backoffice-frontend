@@ -129,11 +129,24 @@ export default function useResource<T extends { id: number }>({
     }
   }
 
-  /** 부분 업데이트 (예: 노출 토글) */
+  /** 부분 업데이트 (예: 노출 토글) — PUT 전체 객체 전송 */
   async function patch(id: number, body: unknown) {
     try {
       await apiFetch(`${basePath}/${id}`, {
         method: "PUT",
+        body: JSON.stringify(body),
+      });
+      fetchList();
+    } catch (err) {
+      toast("error", err instanceof ApiError ? err.message : "변경에 실패했습니다");
+    }
+  }
+
+  /** 전용 PATCH 엔드포인트 호출 (예: /published) */
+  async function patchField(id: number, field: string, body: unknown) {
+    try {
+      await apiFetch(`${basePath}/${id}/${field}`, {
+        method: "PATCH",
         body: JSON.stringify(body),
       });
       fetchList();
@@ -159,6 +172,7 @@ export default function useResource<T extends { id: number }>({
     save,
     confirmDelete,
     patch,
+    patchField,
     saving,
 
     // 모달
