@@ -48,6 +48,10 @@ const LABEL_MAP: Record<string, string> = {
 };
 
 /* ── 유틸 ── */
+function decodeHtmlEntities(s: string): string {
+  return s.replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+}
+
 function deepGet(obj: unknown, path: string): string | undefined {
   const parts = path.split(".");
   let cur: unknown = obj;
@@ -56,7 +60,8 @@ function deepGet(obj: unknown, path: string): string | undefined {
     const k: string | number = /^\d+$/.test(p) ? Number(p) : p;
     cur = (cur as Record<string | number, unknown>)[k];
   }
-  return typeof cur === "string" ? cur : (cur != null ? String(cur) : undefined);
+  const raw = typeof cur === "string" ? cur : (cur != null ? String(cur) : undefined);
+  return raw ? decodeHtmlEntities(raw) : raw;
 }
 
 function deepSet(obj: unknown, path: string, value: string): unknown {
@@ -571,6 +576,17 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
               <div className={`w-8 h-8 border-2 border-gray-300 ${t.spinner} rounded-full animate-spin mx-auto mb-4`} />
               <p className="text-sm text-gray-500">페이지에서 편집 가능한 필드를 감지하는 중...</p>
               <p className="text-xs text-gray-400 mt-1">페이지에 EditableText가 없으면 필드가 표시되지 않습니다</p>
+              {!localStorage.getItem("pe-onboarded") && (
+                <div className="mt-6 mx-auto max-w-[280px] p-3 bg-blue-50 border border-blue-100 rounded-lg text-left">
+                  <p className="text-xs font-medium text-blue-800 mb-1">처음이신가요?</p>
+                  <p className="text-[11px] text-blue-600 leading-relaxed">
+                    왼쪽 미리보기에서 텍스트/이미지를 클릭하면 여기서 편집할 수 있습니다. Ctrl+S로 저장하세요.
+                  </p>
+                  <button onClick={() => { localStorage.setItem("pe-onboarded", "1"); }} className="text-[11px] text-blue-400 hover:text-blue-600 mt-1.5">
+                    다시 안 보기
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
