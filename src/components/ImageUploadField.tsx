@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
@@ -85,8 +85,29 @@ export default function ImageUploadField({ value, onChange, site }: Props) {
     [upload]
   );
 
+  /* ── Ctrl+V 붙여넣기 업로드 ── */
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [pasteActive, setPasteActive] = useState(false);
+
+  useEffect(() => {
+    const handler = (e: ClipboardEvent) => {
+      if (!pasteActive) return;
+      const file = Array.from(e.clipboardData?.files || []).find(f => f.type.startsWith("image/"));
+      if (file) { e.preventDefault(); upload(file); }
+    };
+    document.addEventListener("paste", handler);
+    return () => document.removeEventListener("paste", handler);
+  }, [pasteActive, upload]);
+
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+    <div
+      ref={containerRef}
+      style={{ display: "flex", flexDirection: "column", gap: 8 }}
+      onFocus={() => setPasteActive(true)}
+      onBlur={() => setPasteActive(false)}
+      onMouseEnter={() => setPasteActive(true)}
+      onMouseLeave={() => setPasteActive(false)}
+    >
       {/* 미리보기 */}
       {value && (
         <div
@@ -155,7 +176,7 @@ export default function ImageUploadField({ value, onChange, site }: Props) {
               클릭하거나 이미지를 여기에 끌어다 놓으세요
             </div>
             <div style={{ fontSize: 10, color: "#d1d5db", marginTop: 2 }}>
-              jpg · png · webp / 5MB 이하
+              jpg · png · webp / 5MB 이하 · Ctrl+V 붙여넣기
             </div>
           </div>
         )}
