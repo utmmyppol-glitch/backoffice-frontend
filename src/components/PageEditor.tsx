@@ -201,6 +201,14 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
   const [saving, setSaving] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [historyTarget, setHistoryTarget] = useState<string | null>(null);
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
+  const toggleSection = useCallback((key: string) => {
+    setCollapsedSections(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  }, []);
 
   const sections = useMemo<SectionGroup[]>(() => {
     const map = new Map<string, ManifestField[]>();
@@ -515,30 +523,39 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
 
           {loaded && sections.length > 0 && (
             <div className="space-y-4">
-              {sections.map(section => (
-                <div key={section.key} className="border border-gray-200 rounded-lg bg-white">
-                  <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-                    <div className="flex items-center gap-2">
-                      <h2 className="text-sm font-semibold text-gray-800">{formatSectionKey(section.key)}</h2>
-                      <span className="text-[10px] text-gray-400 font-mono">{section.key}</span>
-                      {dirty.has(section.key) && <span className="w-2 h-2 rounded-full bg-amber-400" title="미저장" />}
+              {sections.map(section => {
+                const isOpen = !collapsedSections.has(section.key);
+                return (
+                  <div key={section.key} className="border border-gray-200 rounded-lg bg-white">
+                    <div
+                      className={`flex items-center justify-between px-4 py-3 cursor-pointer select-none hover:bg-gray-50 transition-colors ${isOpen ? "border-b border-gray-100" : ""}`}
+                      onClick={() => toggleSection(section.key)}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] text-gray-400">{isOpen ? "▼" : "▶"}</span>
+                        <h2 className="text-sm font-semibold text-gray-800">{formatSectionKey(section.key)}</h2>
+                        <span className="text-[10px] text-gray-400 font-mono">{section.key}</span>
+                        {dirty.has(section.key) && <span className="w-2 h-2 rounded-full bg-amber-400" title="미저장" />}
+                      </div>
+                      <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
+                        {contentIds[section.key] && (
+                          <button onClick={() => setHistoryTarget(section.key)} title="수정 이력"
+                            className="px-2 py-1 text-xs text-gray-500 hover:bg-gray-100 rounded">이력</button>
+                        )}
+                        <button onClick={() => saveSection(section.key)} disabled={saving !== null || !dirty.has(section.key)}
+                          className={`px-2.5 py-1 text-xs rounded disabled:opacity-40 font-medium ${t.btnSave}`}>
+                          {saving === section.key ? "..." : "저장"}
+                        </button>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1">
-                      {contentIds[section.key] && (
-                        <button onClick={() => setHistoryTarget(section.key)} title="수정 이력"
-                          className="px-2 py-1 text-xs text-gray-500 hover:bg-gray-100 rounded">이력</button>
-                      )}
-                      <button onClick={() => saveSection(section.key)} disabled={saving !== null || !dirty.has(section.key)}
-                        className={`px-2.5 py-1 text-xs rounded disabled:opacity-40 font-medium ${t.btnSave}`}>
-                        {saving === section.key ? "..." : "저장"}
-                      </button>
-                    </div>
+                    {isOpen && (
+                      <div className="p-4">
+                        {renderSection(section)}
+                      </div>
+                    )}
                   </div>
-                  <div className="p-4">
-                    {renderSection(section)}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
