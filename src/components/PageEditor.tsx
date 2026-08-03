@@ -51,7 +51,7 @@ const LABEL_MAP: Record<string, string> = {
 
 /* ── 유틸 ── */
 function stripHtml(s: string): string {
-  if (!/<[a-z][\s\S]*>/i.test(s)) return s;
+  if (!/<[a-z][\s\S]*?>/i.test(s)) return s;
   return s
     .replace(/<br\s*\/?>/gi, "\n")
     .replace(/<\/(p|div|li|h[1-6])>/gi, "\n")
@@ -195,6 +195,7 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const loadedRef = useRef(false);
+  const pageUrlRef = useRef(presetPages[0].path);
 
   const t = THEME[site];
 
@@ -272,6 +273,7 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
   const loadPage = useCallback((path: string) => {
     setPageUrl(path);
     setUrlInput(path);
+    pageUrlRef.current = path;
     setManifest([]);
     setLoaded(false);
     loadedRef.current = false;
@@ -293,7 +295,13 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
           try { data[key] = JSON.parse(found.bodyHtml); } catch { /* ignore */ }
         }
       }
-      setSectionData(prev => ({ ...prev, ...data }));
+      setSectionData(prev => {
+        const merged = { ...prev };
+        for (const [key, value] of Object.entries(data)) {
+          if (!prev[key]) merged[key] = value; // 로컬 편집된 섹션은 덮어쓰지 않음
+        }
+        return merged;
+      });
       setContentIds(prev => ({ ...prev, ...ids }));
     } catch { /* 오류 시 매니페스트에서 구성 */ }
   }, [site]);
@@ -303,18 +311,27 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
       if (e.data?.type === "editable-manifest") {
         const fields = e.data.fields as ManifestField[];
         const newPath = e.data.path as string | undefined;
+        const isNewPage = !loadedRef.current || (newPath != null && newPath !== pageUrlRef.current);
+
         if (newPath) {
           setPageUrl(newPath);
           setUrlInput(newPath);
+          pageUrlRef.current = newPath;
         }
-        setSectionData({});
-        setContentIds({});
-        setDirty(new Set());
+
         setManifest(fields);
         setLoaded(true);
         loadedRef.current = true;
-        const keys = Array.from(new Set(fields.map(f => f.id.split(".")[0])));
-        loadSectionData(keys);
+
+        if (isNewPage) {
+          setSectionData({});
+          setContentIds({});
+          setDirty(new Set());
+          const keys = Array.from(new Set(fields.map(f => f.id.split(".")[0])));
+          loadSectionData(keys);
+        }
+
+
       }
       if (e.data?.type === "field-click" && e.data.id) {
         const fieldEl = panelRef.current?.querySelector(`[data-field-id="${e.data.id}"]`);
@@ -396,11 +413,9 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
       setContentIds(prev => ({ ...prev, [sectionKey]: res.id }));
       setDirty(prev => { const n = new Set(prev); n.delete(sectionKey); return n; });
       toast("success", `${formatSectionKey(sectionKey)} 저장됨`);
-      loadedRef.current = false;
-      if (iframeRef.current) iframeRef.current.src = `${previewBaseUrl}${pageUrl}?_edit=1&t=${Date.now()}`;
     } catch { toast("error", "저장 실패"); }
     finally { setSaving(null); }
-  }, [site, sectionData, toast, previewBaseUrl, pageUrl]);
+  }, [site, sectionData, toast]);
 
   const saveAll = useCallback(async () => {
     const dirtyKeys = Array.from(dirty);
@@ -418,11 +433,9 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
       }
       setDirty(new Set());
       toast("success", "모든 변경사항 저장됨");
-      loadedRef.current = false;
-      if (iframeRef.current) iframeRef.current.src = `${previewBaseUrl}${pageUrl}?_edit=1&t=${Date.now()}`;
     } catch { toast("error", "저장 중 오류 발생"); }
     finally { setSaving(null); }
-  }, [site, dirty, sectionData, toast, previewBaseUrl, pageUrl]);
+  }, [site, dirty, sectionData, toast]);
 
   /* ── Ctrl+S 전체 저장 ── */
   useEffect(() => {
@@ -456,9 +469,15 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
 
   /* ── 배열 섹션 항목 조작 ── */
   const arrayItemAction = useCallback((sectionKey: string, action: "add" | "delete" | "up" | "down", idx?: number) => {
+    // 스크롤 위치 보존
+    const scrollTop = panelRef.current?.scrollTop;
+
     setSectionData(prev => {
-      const arr = prev[sectionKey];
-      if (!Array.isArray(arr)) return prev;
+      let arr = prev[sectionKey];
+      if (!Array.isArray(arr)) {
+        arr = buildSectionFromManifest(sectionKey, manifest);
+        if (!Array.isArray(arr)) return prev;
+      }
       const clone = JSON.parse(JSON.stringify(arr)) as Record<string, string>[];
 
       if (action === "add") {
@@ -477,19 +496,21 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
         return prev;
       }
 
-      // manifest 재구성
-      const newFields: ManifestField[] = [];
-      for (const f of manifest) {
-        if (!f.id.startsWith(sectionKey + ".")) { newFields.push(f); continue; }
-        const path = f.id.slice(sectionKey.length + 1);
-        if (!/^\d+\./.test(path)) { newFields.push(f); continue; }
-      }
-      clone.forEach((item, i) => {
-        for (const [k, v] of Object.entries(item)) {
-          newFields.push({ id: `${sectionKey}.${i}.${k}`, type: "text", value: String(v) });
+      // 항목 수 변경(추가/삭제)만 manifest 재구성 — 순서변경은 sectionData로 충분
+      if (action === "add" || action === "delete") {
+        const newFields: ManifestField[] = [];
+        for (const f of manifest) {
+          if (!f.id.startsWith(sectionKey + ".")) { newFields.push(f); continue; }
+          const path = f.id.slice(sectionKey.length + 1);
+          if (!/^\d+\./.test(path)) { newFields.push(f); continue; }
         }
-      });
-      setManifest(newFields);
+        clone.forEach((item, i) => {
+          for (const [k, v] of Object.entries(item)) {
+            newFields.push({ id: `${sectionKey}.${i}.${k}`, type: "text", value: typeof v === "object" && v !== null ? JSON.stringify(v) : String(v) });
+          }
+        });
+        setManifest(newFields);
+      }
 
       setTimeout(() => {
         iframeRef.current?.contentWindow?.postMessage(
@@ -499,6 +520,13 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
 
       setDirty(p => new Set(p).add(sectionKey));
       return { ...prev, [sectionKey]: clone };
+    });
+
+    // React 리렌더 후 스크롤 위치 복원
+    requestAnimationFrame(() => {
+      if (panelRef.current && scrollTop !== undefined) {
+        panelRef.current.scrollTop = scrollTop;
+      }
     });
   }, [manifest]);
 
