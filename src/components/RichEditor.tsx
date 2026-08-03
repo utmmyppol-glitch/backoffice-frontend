@@ -9,6 +9,7 @@ import { TableRow } from "@tiptap/extension-table-row";
 import { TableCell } from "@tiptap/extension-table-cell";
 import { TableHeader } from "@tiptap/extension-table-header";
 import Underline from "@tiptap/extension-underline";
+import TextAlign from "@tiptap/extension-text-align";
 import { useState, useEffect, useCallback } from "react";
 
 interface RichEditorProps {
@@ -24,6 +25,7 @@ export default function RichEditor({ value, onChange }: RichEditorProps) {
     extensions: [
       StarterKit.configure({ heading: { levels: [1, 2, 3] } }),
       Underline,
+      TextAlign.configure({ types: ["heading", "paragraph"], alignments: ["left", "center", "right"] }),
       Link.configure({ openOnClick: false }),
       Image,
       Table.configure({ resizable: false }),
@@ -199,6 +201,27 @@ export default function RichEditor({ value, onChange }: RichEditorProps) {
         >
           &ldquo; 인용
         </Btn>
+
+        <span className="w-px h-5 bg-gray-300 mx-1" />
+
+        {(["left", "center", "right"] as const).map(align => (
+          <Btn key={align}
+            active={editor.isActive({ textAlign: align })}
+            onClick={() => editor.chain().focus().setTextAlign(align).run()}
+            title={align === "left" ? "왼쪽 정렬" : align === "center" ? "가운데 정렬" : "오른쪽 정렬"}
+          >
+            <span style={{ display: "inline-flex", flexDirection: "column", gap: 1.5, width: 14 }}>
+              {[0.9, 0.6, 0.75].map((w, i) => (
+                <span key={i} style={{
+                  height: 1.5, background: "currentColor", borderRadius: 1,
+                  width: `${w * 100}%`,
+                  marginLeft: align === "center" ? "auto" : align === "right" ? "auto" : 0,
+                  marginRight: align === "center" ? "auto" : 0,
+                }} />
+              ))}
+            </span>
+          </Btn>
+        ))}
 
         <span className="w-px h-5 bg-gray-300 mx-1" />
 

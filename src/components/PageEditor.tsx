@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { apiFetch } from "@/lib/api";
 import { useToast } from "@/components/Toast";
 import ImageUploadField from "@/components/ImageUploadField";
+import dynamic from "next/dynamic";
+const RichEditor = dynamic(() => import("@/components/RichEditor"), { ssr: false });
 
 /* ── 타입 ── */
 interface ContentResponse { id: number; regionKey: string; bodyHtml: string; }
@@ -472,8 +474,7 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
         {field.type === "image" ? (
           <ImageUploadField value={value} onChange={url => updateField(field.id, url)} site={site} />
         ) : isTextarea ? (
-          <textarea value={value} onChange={e => updateField(field.id, e.target.value)} rows={2}
-            className={`w-full border border-gray-300 rounded px-2.5 py-1.5 text-sm focus:ring-2 ${t.focusRing}`} />
+          <RichEditor value={value} onChange={html => updateField(field.id, html)} />
         ) : (
           <input type="text" value={value} onChange={e => updateField(field.id, e.target.value)}
             className={`w-full border border-gray-300 rounded px-2.5 py-1.5 text-sm focus:ring-2 ${t.focusRing}`} />
