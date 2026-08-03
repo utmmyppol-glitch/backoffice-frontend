@@ -201,6 +201,7 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
   const [saving, setSaving] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [historyTarget, setHistoryTarget] = useState<string | null>(null);
+  const [viewportMode, setViewportMode] = useState<"desktop" | "tablet" | "mobile">("desktop");
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
   const toggleSection = useCallback((key: string) => {
     setCollapsedSections(prev => {
@@ -483,10 +484,26 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
           </div>
           <button onClick={() => loadPage(pageUrl)}
             className="text-xs text-gray-500 hover:text-gray-800 px-2 py-1 rounded hover:bg-gray-100 shrink-0">↻</button>
+          <div className="flex items-center gap-0.5 ml-1 border-l border-gray-200 pl-2">
+            {([["desktop", "🖥", "데스크탑"], ["tablet", "📱", "768px"], ["mobile", "📲", "390px"]] as const).map(([mode, icon, label]) => (
+              <button key={mode} onClick={() => setViewportMode(mode)}
+                className={`text-[11px] px-1.5 py-0.5 rounded transition-colors ${viewportMode === mode ? "bg-gray-800 text-white" : "text-gray-400 hover:text-gray-700 hover:bg-gray-100"}`}
+                title={label}>{icon}</button>
+            ))}
+          </div>
         </div>
-        <iframe ref={iframeRef} src={`${previewBaseUrl}${pageUrl}?_edit=1`}
-          className="flex-1 w-full bg-white" style={{ border: "none" }} title="미리보기"
-          onLoad={handleIframeLoad} />
+        <div className="flex-1 flex items-start justify-center bg-gray-100 overflow-auto">
+          <iframe ref={iframeRef} src={`${previewBaseUrl}${pageUrl}?_edit=1`}
+            className="bg-white h-full"
+            style={{
+              border: "none",
+              width: viewportMode === "tablet" ? 768 : viewportMode === "mobile" ? 390 : "100%",
+              maxWidth: "100%",
+              boxShadow: viewportMode !== "desktop" ? "0 0 0 1px rgba(0,0,0,.1)" : "none",
+            }}
+            title="미리보기"
+            onLoad={handleIframeLoad} />
+        </div>
       </div>
 
       {/* 패널 토글 핸들 */}
