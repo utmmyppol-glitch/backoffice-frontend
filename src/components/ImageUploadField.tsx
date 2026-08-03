@@ -8,9 +8,10 @@ interface Props {
   value: string;
   onChange: (url: string) => void;
   site: string;
+  previewBaseUrl?: string;
 }
 
-export default function ImageUploadField({ value, onChange, site }: Props) {
+export default function ImageUploadField({ value, onChange, site, previewBaseUrl }: Props) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -99,6 +100,10 @@ export default function ImageUploadField({ value, onChange, site }: Props) {
     return () => document.removeEventListener("paste", handler);
   }, [pasteActive, upload]);
 
+  const previewSrc = value && !value.startsWith("http") && previewBaseUrl
+    ? `${previewBaseUrl}${value}`
+    : value;
+
   return (
     <div
       ref={containerRef}
@@ -119,7 +124,7 @@ export default function ImageUploadField({ value, onChange, site }: Props) {
           }}
         >
           <img
-            src={value}
+            src={previewSrc}
             alt="미리보기"
             style={{
               width: "100%",

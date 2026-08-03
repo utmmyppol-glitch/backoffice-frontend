@@ -485,7 +485,7 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
           onClick={() => postToIframe({ type: "scroll-to-field", id: field.id })}
         >{fieldLabel(path)}</label>
         {field.type === "image" ? (
-          <ImageUploadField value={value} onChange={url => updateField(field.id, url)} site={site} />
+          <ImageUploadField value={value} onChange={url => updateField(field.id, url)} site={site} previewBaseUrl={previewBaseUrl} />
         ) : isTextarea ? (
           <RichEditor value={value} onChange={html => updateField(field.id, html)} />
         ) : (
@@ -497,7 +497,7 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
         )}
       </div>
     );
-  }, [site, t.focusRing, getFieldValue, updateField, postToIframe]);
+  }, [site, t.focusRing, getFieldValue, updateField, postToIframe, previewBaseUrl]);
 
   const renderSection = useCallback((section: SectionGroup) => {
     const paths = section.fields.map(f => f.id.slice(section.key.length + 1));
