@@ -52,12 +52,14 @@ const LABEL_MAP: Record<string, string> = {
 /* ── 유틸 ── */
 function stripHtml(s: string): string {
   if (!/<[a-z][\s\S]*>/i.test(s)) return s;
-  // 블록 경계(<p>, <br>, <div>)를 공백으로 → 태그 제거 → 정리
   return s
-    .replace(/<\/?(p|div|br|li|h[1-6])[^>]*\/?>/gi, " ")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/(p|div|li|h[1-6])>/gi, "\n")
     .replace(/<[^>]*>/g, "")
     .replace(/&nbsp;/g, " ")
-    .replace(/\s+/g, " ")
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n /g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
     .trim();
 }
 
@@ -487,8 +489,11 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
         ) : isTextarea ? (
           <RichEditor value={value} onChange={html => updateField(field.id, html)} />
         ) : (
-          <input type="text" value={stripHtml(value)} onChange={e => updateField(field.id, e.target.value)}
-            className={`w-full border border-gray-300 rounded px-2.5 py-1.5 text-sm focus:ring-2 ${t.focusRing}`} />
+          <textarea value={stripHtml(value)} onChange={e => updateField(field.id, e.target.value)}
+            rows={1}
+            onInput={e => { const el = e.currentTarget; el.style.height = "auto"; el.style.height = el.scrollHeight + "px"; }}
+            ref={el => { if (el) { el.style.height = "auto"; el.style.height = el.scrollHeight + "px"; } }}
+            className={`w-full border border-gray-300 rounded px-2.5 py-1.5 text-sm focus:ring-2 resize-none overflow-hidden ${t.focusRing}`} />
         )}
       </div>
     );
