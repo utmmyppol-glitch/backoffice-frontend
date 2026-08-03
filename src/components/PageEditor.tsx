@@ -202,6 +202,8 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
   const [loaded, setLoaded] = useState(false);
   const [historyTarget, setHistoryTarget] = useState<string | null>(null);
   const [viewportMode, setViewportMode] = useState<"desktop" | "tablet" | "mobile">("desktop");
+  const [showDirtyOnly, setShowDirtyOnly] = useState(false);
+  const [fieldSearch, setFieldSearch] = useState("");
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
   const toggleSection = useCallback((key: string) => {
     setCollapsedSections(prev => {
@@ -405,6 +407,20 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
     toast("success", "이전 버전 불러옴 — 저장하면 적용됩니다.");
   }, [toast]);
 
+  const filteredSections = useMemo(() => {
+    let result = sections;
+    if (showDirtyOnly) result = result.filter(s => dirty.has(s.key));
+    if (fieldSearch.trim()) {
+      const q = fieldSearch.toLowerCase();
+      result = result.filter(s =>
+        s.key.toLowerCase().includes(q) ||
+        formatSectionKey(s.key).toLowerCase().includes(q) ||
+        s.fields.some(f => fieldLabel(f.id.split(".").slice(1).join(".")).toLowerCase().includes(q))
+      );
+    }
+    return result;
+  }, [sections, showDirtyOnly, dirty, fieldSearch]);
+
   const renderField = useCallback((field: ManifestField) => {
     const path = field.id.split(".").slice(1).join(".");
     const value = getFieldValue(field.id);
@@ -566,8 +582,27 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
           )}
 
           {loaded && sections.length > 0 && (
+            <div className="flex items-center gap-2 mb-4">
+              <input
+                value={fieldSearch}
+                onChange={e => setFieldSearch(e.target.value)}
+                placeholder="섹션/필드 검색..."
+                className={`flex-1 text-xs border border-gray-200 rounded px-2.5 py-1.5 focus:ring-1 ${t.focusRing}`}
+              />
+              {dirty.size > 0 && (
+                <button
+                  onClick={() => setShowDirtyOnly(v => !v)}
+                  className={`text-xs px-2.5 py-1.5 rounded border whitespace-nowrap ${showDirtyOnly ? `${t.btnSave} border-current` : "border-gray-200 text-gray-500 hover:bg-gray-50"}`}
+                >
+                  미저장만
+                </button>
+              )}
+            </div>
+          )}
+
+          {loaded && sections.length > 0 && (
             <div className="space-y-4">
-              {sections.map(section => {
+              {filteredSections.map(section => {
                 const isOpen = !collapsedSections.has(section.key);
                 return (
                   <div key={section.key} className="border border-gray-200 rounded-lg bg-white">
