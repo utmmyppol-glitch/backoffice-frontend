@@ -168,6 +168,22 @@ export interface Seminar {
   updated_at: string;
 }
 
+// ── 인사이트 ──
+export type InsightStatus = "PENDING" | "APPROVED" | "REJECTED";
+
+export interface Insight {
+  id: number;
+  title: string;
+  summary: string;
+  sourceUrl: string;
+  sourceName: string;
+  publishedAt: string;
+  thumbnailUrl: string | null;
+  status: InsightStatus;
+  approvedAt: string | null;
+  approvedBy: string | null;
+}
+
 // ── 제품 (dataware 전용) ──
 export interface Product {
   id: number;
