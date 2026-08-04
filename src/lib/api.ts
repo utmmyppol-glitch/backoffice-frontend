@@ -1,9 +1,16 @@
+import { USE_MOCK, resolveMock } from "./mock";
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
 export async function apiFetch<T>(
   path: string,
   options: RequestInit = {}
 ): Promise<T> {
+  if (USE_MOCK) {
+    const mockData = resolveMock(path, options);
+    return (mockData === undefined ? undefined : mockData) as T;
+  }
+
   const token =
     typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
