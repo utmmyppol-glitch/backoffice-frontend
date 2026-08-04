@@ -33,3 +33,6 @@ Thumbs.db
 
 # gradle leftovers (safety)
 .gradle/
+
+# claude temp
+.claude/
