@@ -1,0 +1,102 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --sidebar-width: 240px;
+  --topbar-height: 56px;
+}
+
+body {
+  @apply bg-gray-50 text-gray-900 antialiased;
+}
+
+/* ── TipTap Rich Editor ── */
+.rich-editor-content .tiptap {
+  @apply p-4 min-h-[320px] focus:outline-none text-gray-800;
+}
+
+.rich-editor-content .tiptap h1 {
+  @apply text-2xl font-bold mb-3 mt-4;
+}
+
+.rich-editor-content .tiptap h2 {
+  @apply text-xl font-bold mb-2 mt-3;
+}
+
+.rich-editor-content .tiptap h3 {
+  @apply text-lg font-semibold mb-2 mt-3;
+}
+
+.rich-editor-content .tiptap p {
+  @apply mb-2 leading-relaxed;
+}
+
+.rich-editor-content .tiptap ul {
+  @apply list-disc pl-6 mb-2;
+}
+
+.rich-editor-content .tiptap ol {
+  @apply list-decimal pl-6 mb-2;
+}
+
+.rich-editor-content .tiptap li {
+  @apply mb-1;
+}
+
+.rich-editor-content .tiptap blockquote {
+  @apply border-l-4 border-gray-300 pl-4 italic text-gray-600 my-3;
+}
+
+.rich-editor-content .tiptap a {
+  @apply text-blue-600 underline cursor-pointer;
+}
+
+.rich-editor-content .tiptap img {
+  @apply max-w-full h-auto rounded my-3;
+}
+
+.rich-editor-content .tiptap hr {
+  @apply border-gray-300 my-4;
+}
+
+.rich-editor-content .tiptap table {
+  @apply w-full border-collapse my-3;
+}
+
+.rich-editor-content .tiptap table th,
+.rich-editor-content .tiptap table td {
+  @apply border border-gray-300 px-3 py-2 text-sm;
+}
+
+.rich-editor-content .tiptap table th {
+  @apply bg-gray-100 font-semibold text-left;
+}
+
+.rich-editor-content .tiptap code {
+  @apply bg-gray-100 px-1.5 py-0.5 rounded text-sm font-mono text-pink-600;
+}
+
+.rich-editor-content .tiptap pre {
+  @apply bg-gray-900 text-gray-100 p-4 rounded-lg my-3 overflow-x-auto;
+}
+
+.rich-editor-content .tiptap pre code {
+  @apply bg-transparent text-inherit p-0;
+}
+
+/* ── Toast animation ── */
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.25s ease-out;
+}
