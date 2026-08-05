@@ -90,8 +90,13 @@ export default function InquiryManager({ site }: InquiryManagerProps) {
     }
   }
 
-  function formatDate(s: string) {
-    try { return new Date(s).toLocaleDateString("ko-KR"); } catch { return s; }
+  function formatDate(s: string | undefined | null) {
+    if (!s) return "-";
+    try {
+      const d = new Date(s);
+      if (isNaN(d.getTime())) return "-";
+      return d.toLocaleDateString("ko-KR");
+    } catch { return "-"; }
   }
 
   const columns: Column<Inquiry>[] = [
@@ -103,8 +108,9 @@ export default function InquiryManager({ site }: InquiryManagerProps) {
         </button>
       ),
     },
-    { key: "company", label: "회사", width: "130px", render: (item) => item.company || "-" },
-    { key: "phone", label: "연락처", width: "130px", render: (item) => item.phone || "-" },
+    { key: "company", label: "회사", width: "120px", render: (item) => item.company || "-" },
+    { key: "email", label: "이메일", width: "160px", render: (item) => item.email || "-" },
+    { key: "phone", label: "연락처", width: "120px", render: (item) => item.phone || "-" },
     { key: "product", label: "관심 제품", width: "130px", render: (item) => item.product || "-" },
     {
       key: "status", label: "상태", width: "100px",
@@ -114,7 +120,7 @@ export default function InquiryManager({ site }: InquiryManagerProps) {
       key: "assignee", label: "담당자", width: "100px",
       render: (item) => item.assignee || <span className="text-gray-300">미지정</span>,
     },
-    { key: "created_at", label: "접수일", width: "100px", render: (item) => formatDate(item.created_at) },
+    { key: "createdAt", label: "접수일", width: "100px", render: (item) => formatDate(item.createdAt) },
     {
       key: "actions", label: "", width: "80px",
       render: (item) => (
@@ -214,7 +220,7 @@ export default function InquiryManager({ site }: InquiryManagerProps) {
               </div>
               <div>
                 <span className="text-xs text-gray-500">개인정보 동의</span>
-                <p className="text-sm">{selected.privacy_agreed ? "동의함" : "미동의"}</p>
+                <p className="text-sm">{selected.consentPrivacy ? "동의함" : "미동의"}</p>
               </div>
             </div>
 
@@ -248,7 +254,7 @@ export default function InquiryManager({ site }: InquiryManagerProps) {
             </div>
 
             <div className="text-xs text-gray-400">
-              접수일: {formatDate(selected.created_at)}
+              접수일: {formatDate(selected.createdAt)}
             </div>
           </div>
         )}

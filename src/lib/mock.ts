@@ -127,22 +127,22 @@ const mockInquiries: Inquiry[] = [
   {
     id: 1, name: "김철수", company: "ABC솔루션", email: "kim@abc.com", phone: "010-1234-5678",
     product: "데이터 분석 플랫폼", message: "도입 비용과 일정 문의드립니다.",
-    privacy_agreed: true, status: "NEW", assignee: "", created_at: "2024-12-10T09:00:00", updated_at: "2024-12-10T09:00:00",
+    consentPrivacy: true, status: "NEW", assignee: "", createdAt: "2024-12-10T09:00:00", updatedAt: "2024-12-10T09:00:00",
   },
   {
     id: 2, name: "이영희", company: "XYZ테크", email: "lee@xyz.com", phone: "010-9876-5432",
     product: "클라우드 보안", message: "PoC 진행이 가능한지 문의합니다.",
-    privacy_agreed: true, status: "IN_PROGRESS", assignee: "박담당", created_at: "2024-12-08T14:00:00", updated_at: "2024-12-09T10:00:00",
+    consentPrivacy: true, status: "IN_PROGRESS", assignee: "박담당", createdAt: "2024-12-08T14:00:00", updatedAt: "2024-12-09T10:00:00",
   },
   {
     id: 3, name: "박민수", company: "테스트코프", email: "park@test.com", phone: "010-5555-1234",
     product: "ERP 시스템", message: "기존 시스템 마이그레이션 관련 상담 요청합니다.",
-    privacy_agreed: true, status: "NEW", assignee: "", created_at: "2024-12-09T11:00:00", updated_at: "2024-12-09T11:00:00",
+    consentPrivacy: true, status: "NEW", assignee: "", createdAt: "2024-12-09T11:00:00", updatedAt: "2024-12-09T11:00:00",
   },
   {
     id: 4, name: "최지은", company: "스마트솔루션", email: "choi@smart.com", phone: "010-7777-8888",
     product: "AI 플랫폼", message: "AI 기반 자동화 솔루션 견적을 요청합니다.",
-    privacy_agreed: true, status: "COMPLETED", assignee: "김담당", created_at: "2024-12-05T10:00:00", updated_at: "2024-12-07T15:00:00",
+    consentPrivacy: true, status: "COMPLETED", assignee: "김담당", createdAt: "2024-12-05T10:00:00", updatedAt: "2024-12-07T15:00:00",
   },
 ];
 

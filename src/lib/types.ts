@@ -111,11 +111,14 @@ export interface Inquiry {
   phone: string;
   product: string;
   message: string;
-  privacy_agreed: boolean;
+  /** 개인정보 수집·이용 동의 여부 */
+  consentPrivacy: boolean;
   status: InquiryStatus;
   assignee: string;
-  created_at: string;
-  updated_at: string;
+  /** 접수 일시 (ISO 8601) */
+  createdAt: string;
+  /** 최종 수정 일시 (ISO 8601) */
+  updatedAt: string;
 }
 
 // ── 다운로드 이력 ──
