@@ -15,15 +15,15 @@ interface BannerManagerProps {
 
 interface BannerForm {
   title: string;
-  image_url: string;
-  link_url: string;
+  imageUrl: string;
+  linkUrl: string;
   position: BannerPosition;
-  sort_order: number;
-  is_active: boolean;
+  sortOrder: number;
+  isActive: boolean;
 }
 
 const emptyForm: BannerForm = {
-  title: "", image_url: "", link_url: "", position: "HERO", sort_order: 0, is_active: true,
+  title: "", imageUrl: "", linkUrl: "", position: "HERO", sortOrder: 0, isActive: true,
 };
 
 const POSITION_LABELS: Record<BannerPosition, string> = {
@@ -38,14 +38,14 @@ export default function BannerManager({ site }: BannerManagerProps) {
 
   function openEdit(item: Banner) {
     setForm({
-      title: item.title, image_url: item.image_url, link_url: item.link_url,
-      position: item.position, sort_order: item.sort_order, is_active: item.is_active,
+      title: item.title, imageUrl: item.imageUrl, linkUrl: item.linkUrl,
+      position: item.position, sortOrder: item.sortOrder, isActive: item.isActive,
     });
     res.openEdit(item);
   }
 
   async function handleSave() {
-    if (!form.title.trim() || !form.image_url.trim()) return;
+    if (!form.title.trim() || !form.imageUrl.trim()) return;
     await res.save(res.editing?.id ?? null, form);
   }
 
@@ -53,8 +53,8 @@ export default function BannerManager({ site }: BannerManagerProps) {
     {
       key: "image", label: "이미지", width: "100px",
       render: (item) =>
-        item.image_url ? (
-          <NextImage src={item.image_url} alt={item.title} width={80} height={48}
+        item.imageUrl ? (
+          <NextImage src={item.imageUrl} alt={item.title} width={80} height={48}
             className="w-20 h-12 object-cover rounded border" unoptimized />
         ) : <span className="text-gray-300 text-xs">이미지 없음</span>,
     },
@@ -72,10 +72,10 @@ export default function BannerManager({ site }: BannerManagerProps) {
         </span>
       ),
     },
-    { key: "sort_order", label: "순서", width: "70px", render: (item) => item.sort_order },
+    { key: "sortOrder", label: "순서", width: "70px", render: (item) => item.sortOrder },
     {
-      key: "is_active", label: "노출", width: "80px",
-      render: (item) => <ToggleSwitch checked={item.is_active} onChange={() => res.patch(item.id, { ...item, is_active: !item.is_active })} />,
+      key: "isActive", label: "노출", width: "80px",
+      render: (item) => <ToggleSwitch checked={item.isActive} onChange={() => res.patch(item.id, { ...item, isActive: !item.isActive })} />,
     },
     {
       key: "actions", label: "", width: "100px",
@@ -109,19 +109,19 @@ export default function BannerManager({ site }: BannerManagerProps) {
               이미지 URL <span className="text-red-500">*</span>
               <span className="ml-1 text-xs text-gray-400 font-normal">(이미지 업로드 기능은 추후 지원 예정)</span>
             </label>
-            <input type="url" value={form.image_url} onChange={(e) => setForm({ ...form, image_url: e.target.value })}
+            <input type="url" value={form.imageUrl} onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
               placeholder="https://example.com/banner.jpg"
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
-            {isValidImageUrl(form.image_url) && (
+            {isValidImageUrl(form.imageUrl) && (
               <div className="mt-2 p-2 bg-gray-50 rounded-lg inline-block">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={form.image_url} alt="배너 미리보기" className="max-h-40 rounded" />
+                <img src={form.imageUrl} alt="배너 미리보기" className="max-h-40 rounded" />
               </div>
             )}
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">클릭 시 이동 링크</label>
-            <input type="url" value={form.link_url} onChange={(e) => setForm({ ...form, link_url: e.target.value })}
+            <input type="url" value={form.linkUrl} onChange={(e) => setForm({ ...form, linkUrl: e.target.value })}
               placeholder="https://example.com"
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
           </div>
@@ -137,13 +137,13 @@ export default function BannerManager({ site }: BannerManagerProps) {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">표시 순서</label>
-              <input type="number" value={form.sort_order} onChange={(e) => setForm({ ...form, sort_order: Number(e.target.value) })}
+              <input type="number" value={form.sortOrder} onChange={(e) => setForm({ ...form, sortOrder: Number(e.target.value) })}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
             </div>
           </div>
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-gray-700">노출 여부</span>
-            <ToggleSwitch checked={form.is_active} onChange={(v) => setForm({ ...form, is_active: v })} />
+            <ToggleSwitch checked={form.isActive} onChange={(v) => setForm({ ...form, isActive: v })} />
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <button onClick={() => res.setModalOpen(false)} className="px-4 py-2 text-sm text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">취소</button>

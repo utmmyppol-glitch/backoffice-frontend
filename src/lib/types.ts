@@ -30,18 +30,18 @@ export interface MenuFormData {
 // ── 콘텐츠 편집 ──
 export interface ContentRegion {
   id: number;
-  region_key: string;
-  display_name: string;
-  body_html: string;
-  updated_at: string;
+  regionKey: string;
+  displayName: string;
+  bodyHtml: string;
+  updatedAt: string;
 }
 
 export interface ContentHistory {
   id: number;
-  content_id: number;
-  body_html: string;
-  edited_by: string;
-  created_at: string;
+  contentId: number;
+  bodyHtml: string;
+  editedBy: string;
+  createdAt: string;
 }
 
 // ── 페이지네이션 (Spring Page 형식) ──
@@ -57,11 +57,11 @@ export interface Post {
   id: number;
   title: string;
   category: string;
-  body_html: string;
-  thumbnail_url: string;
+  bodyHtml: string;
+  thumbnailUrl: string;
   published: boolean;
-  created_at: string;
-  updated_at: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 // ── 배너 ──
@@ -70,21 +70,21 @@ export type BannerPosition = "HERO" | "POPUP" | "PROMOTION";
 export interface Banner {
   id: number;
   title: string;
-  image_url: string;
-  link_url: string;
+  imageUrl: string;
+  linkUrl: string;
   position: BannerPosition;
-  sort_order: number;
-  is_active: boolean;
-  created_at: string;
+  sortOrder: number;
+  isActive: boolean;
+  createdAt: string;
 }
 
 // ── 고객사 로고 ──
 export interface ClientLogo {
   id: number;
   name: string;
-  image_url: string;
-  sort_order: number;
-  is_active: boolean;
+  imageUrl: string;
+  sortOrder: number;
+  isActive: boolean;
 }
 
 // ── 고객 사례 ──
@@ -93,11 +93,11 @@ export interface CustomerStory {
   company: string;
   industry: string;
   title: string;
-  body_html: string;
-  thumbnail_url: string;
+  bodyHtml: string;
+  thumbnailUrl: string;
   published: boolean;
-  created_at: string;
-  updated_at: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 // ── 문의 ──
@@ -111,13 +111,10 @@ export interface Inquiry {
   phone: string;
   product: string;
   message: string;
-  /** 개인정보 수집·이용 동의 여부 */
   consentPrivacy: boolean;
   status: InquiryStatus;
   assignee: string;
-  /** 접수 일시 (ISO 8601) */
   createdAt: string;
-  /** 최종 수정 일시 (ISO 8601) */
   updatedAt: string;
 }
 
@@ -128,9 +125,9 @@ export interface Download {
   company: string;
   email: string;
   phone: string;
-  resource_name: string;
-  privacy_agreed: boolean;
-  created_at: string;
+  resourceName: string;
+  privacyAgreed: boolean;
+  createdAt: string;
 }
 
 // ── 교육 신청 (dataware 전용) ──
@@ -142,14 +139,14 @@ export interface Education {
   company: string;
   email: string;
   phone: string;
-  course_name: string;
-  preferred_date: string;
+  courseName: string;
+  preferredDate: string;
   participants: number;
   message: string;
-  privacy_agreed: boolean;
+  privacyAgreed: boolean;
   status: EducationStatus;
-  created_at: string;
-  updated_at: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 // ── 세미나 신청 (dataware 전용) ──
@@ -161,14 +158,14 @@ export interface Seminar {
   company: string;
   email: string;
   phone: string;
-  seminar_title: string;
-  seminar_date: string;
+  seminarTitle: string;
+  seminarDate: string;
   participants: number;
   message: string;
-  privacy_agreed: boolean;
+  privacyAgreed: boolean;
   status: SeminarStatus;
-  created_at: string;
-  updated_at: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 // ── 인사이트 ──
@@ -194,11 +191,11 @@ export interface Product {
   slug: string;
   category: string;
   subtitle: string;
-  description_html: string;
+  descriptionHtml: string;
   features: string[];
   certification: string;
-  sort_order: number;
+  sortOrder: number;
   published: boolean;
-  created_at: string;
-  updated_at: string;
+  createdAt: string;
+  updatedAt: string;
 }

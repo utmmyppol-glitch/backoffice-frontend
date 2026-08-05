@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect } from "react";
-import { USE_MOCK } from "@/lib/mock";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
@@ -34,14 +33,6 @@ export default function ImageUploadField({ value, onChange, site, previewBaseUrl
 
       setUploading(true);
       try {
-        if (USE_MOCK) {
-          // Simulate a brief upload delay
-          await new Promise((r) => setTimeout(r, 300));
-          onChange(`${API_URL}/uploads/mock-uploaded-image.jpg`);
-          setUploading(false);
-          return;
-        }
-
         const token = localStorage.getItem("token");
         const formData = new FormData();
         formData.append("file", file);

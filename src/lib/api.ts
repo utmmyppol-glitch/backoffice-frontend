@@ -1,16 +1,9 @@
-import { USE_MOCK, resolveMock } from "./mock";
-
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
 export async function apiFetch<T>(
   path: string,
   options: RequestInit = {}
 ): Promise<T> {
-  if (USE_MOCK) {
-    const mockData = resolveMock(path, options);
-    return (mockData === undefined ? undefined : mockData) as T;
-  }
-
   const token =
     typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
@@ -29,14 +22,19 @@ export async function apiFetch<T>(
     cache: "no-store",
   });
 
-  if (res.status === 401 || res.status === 403) {
+  if (res.status === 401) {
     if (typeof window !== "undefined") {
       localStorage.removeItem("token");
       localStorage.removeItem("user");
-      window.location.href = "/login";
+      // location.replace로 즉시 리다이렉트 (뒤로가기 방지)
+      window.location.replace("/login");
     }
+    throw new ApiError(res.status, "인증이 만료되었습니다. 다시 로그인해 주세요.");
+  }
+
+  if (res.status === 403) {
     const body = await res.json().catch(() => ({}));
-    throw new ApiError(res.status, body.message || "권한이 없습니다");
+    throw new ApiError(res.status, body.message || "접근 권한이 없습니다");
   }
 
   if (!res.ok) {

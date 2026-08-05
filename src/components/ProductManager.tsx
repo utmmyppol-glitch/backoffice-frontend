@@ -15,16 +15,16 @@ interface ProductForm {
   slug: string;
   subtitle: string;
   category: string;
-  description_html: string;
+  descriptionHtml: string;
   features: string[];
   certification: string;
-  sort_order: number;
+  sortOrder: number;
   published: boolean;
 }
 
 const emptyForm: ProductForm = {
-  name: "", slug: "", subtitle: "", category: "", description_html: "",
-  features: [], certification: "", sort_order: 0, published: true,
+  name: "", slug: "", subtitle: "", category: "", descriptionHtml: "",
+  features: [], certification: "", sortOrder: 0, published: true,
 };
 
 export default function ProductManager() {
@@ -37,9 +37,9 @@ export default function ProductManager() {
   function openEdit(item: Product) {
     setForm({
       name: item.name, slug: item.slug, subtitle: item.subtitle || "",
-      category: item.category, description_html: item.description_html,
+      category: item.category, descriptionHtml: item.descriptionHtml,
       features: item.features || [], certification: item.certification || "",
-      sort_order: item.sort_order, published: item.published,
+      sortOrder: item.sortOrder, published: item.published,
     });
     setFeatureInput("");
     res.openEdit(item);
@@ -73,7 +73,7 @@ export default function ProductManager() {
     },
     { key: "slug", label: "Slug", width: "140px", render: (item) => <span className="text-gray-500 font-mono text-xs">{item.slug}</span> },
     { key: "category", label: "카테고리", width: "120px", render: (item) => item.category || "-" },
-    { key: "sort_order", label: "순서", width: "70px", render: (item) => item.sort_order },
+    { key: "sortOrder", label: "순서", width: "70px", render: (item) => item.sortOrder },
     {
       key: "published", label: "노출", width: "80px",
       render: (item) => <ToggleSwitch checked={item.published} onChange={() => res.patchField(item.id, "published", { published: !item.published })} />,
@@ -132,7 +132,7 @@ export default function ProductManager() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">제품 설명</label>
-            <RichEditor value={form.description_html} onChange={(html) => setForm({ ...form, description_html: html })} />
+            <RichEditor value={form.descriptionHtml} onChange={(html) => setForm({ ...form, descriptionHtml: html })} />
           </div>
 
           <div>
@@ -166,7 +166,7 @@ export default function ProductManager() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">표시 순서</label>
-              <input type="number" value={form.sort_order} onChange={(e) => setForm({ ...form, sort_order: Number(e.target.value) })}
+              <input type="number" value={form.sortOrder} onChange={(e) => setForm({ ...form, sortOrder: Number(e.target.value) })}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
             </div>
             <div className="flex items-end pb-1">

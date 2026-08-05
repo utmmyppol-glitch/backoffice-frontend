@@ -17,6 +17,7 @@ export default function DownloadViewer({ site }: DownloadViewerProps) {
   const [search, setSearch] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState<Download | null>(null);
 
   const pageSize = 20;
 
@@ -38,13 +39,16 @@ export default function DownloadViewer({ site }: DownloadViewerProps) {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  function formatDateTime(s: string) {
+  function formatDateTime(s: string | undefined | null) {
+    if (!s) return "-";
     try {
-      return new Date(s).toLocaleString("ko-KR", {
+      const d = new Date(s);
+      if (isNaN(d.getTime())) return "-";
+      return d.toLocaleString("ko-KR", {
         year: "numeric", month: "2-digit", day: "2-digit",
         hour: "2-digit", minute: "2-digit",
       });
-    } catch { return s; }
+    } catch { return "-"; }
   }
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
@@ -84,19 +88,19 @@ export default function DownloadViewer({ site }: DownloadViewerProps) {
               <tr><td colSpan={6} className="px-4 py-12 text-center text-gray-400">다운로드 이력이 없습니다</td></tr>
             ) : (
               data.map((item) => (
-                <tr key={item.id} className="hover:bg-gray-50">
+                <tr key={item.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => setSelected(item)}>
                   <td className="px-4 py-3 text-sm font-medium text-gray-900">{item.name}</td>
                   <td className="px-4 py-3 text-sm text-gray-700">{item.company || "-"}</td>
                   <td className="px-4 py-3 text-sm text-gray-700">{item.phone || "-"}</td>
-                  <td className="px-4 py-3 text-sm text-gray-700">{item.resource_name}</td>
+                  <td className="px-4 py-3 text-sm text-gray-700">{item.resourceName || "-"}</td>
                   <td className="px-4 py-3 text-sm">
-                    {item.privacy_agreed ? (
+                    {item.privacyAgreed ? (
                       <span className="text-green-600 text-xs font-medium">동의</span>
                     ) : (
                       <span className="text-gray-400 text-xs">미동의</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-sm text-gray-500">{formatDateTime(item.created_at)}</td>
+                  <td className="px-4 py-3 text-sm text-gray-500">{formatDateTime(item.createdAt)}</td>
                 </tr>
               ))
             )}
@@ -115,6 +119,39 @@ export default function DownloadViewer({ site }: DownloadViewerProps) {
           </div>
         )}
       </div>
+
+      {selected && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setSelected(null)}>
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+              <h2 className="text-lg font-bold text-gray-900">다운로드 상세</h2>
+              <button onClick={() => setSelected(null)} className="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
+            </div>
+            <div className="px-6 py-5 space-y-3">
+              <DetailRow label="이름" value={selected.name} />
+              <DetailRow label="회사" value={selected.company} />
+              <DetailRow label="이메일" value={selected.email} />
+              <DetailRow label="연락처" value={selected.phone} />
+              <DetailRow label="다운로드 자료" value={selected.resourceName} />
+              <DetailRow label="개인정보 동의" value={selected.privacyAgreed ? "동의" : "미동의"} />
+              <DetailRow label="다운로드 일시" value={formatDateTime(selected.createdAt)} />
+            </div>
+            <div className="px-6 py-4 border-t border-gray-200 flex justify-end">
+              <button onClick={() => setSelected(null)}
+                className="px-4 py-2 bg-gray-100 text-gray-700 text-sm rounded-lg hover:bg-gray-200">닫기</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DetailRow({ label, value }: { label: string; value: string | undefined | null }) {
+  return (
+    <div className="flex">
+      <span className="w-28 shrink-0 text-sm font-medium text-gray-500">{label}</span>
+      <span className="text-sm text-gray-900">{value || "-"}</span>
     </div>
   );
 }

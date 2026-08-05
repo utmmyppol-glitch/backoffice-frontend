@@ -20,8 +20,8 @@ interface DashboardData {
   totalSeminars: number;
   totalDownloads: number;
   totalStories: number;
-  recentInquiries: { id: number; name: string; company: string; message: string; status: string; created_at: string }[];
-  recentPosts: { id: number; title: string; category: string; created_at: string }[];
+  recentInquiries: { id: number; name: string; company: string; message: string; status: string; createdAt: string }[];
+  recentPosts: { id: number; title: string; category: string; createdAt: string }[];
 }
 
 const INITIAL: DashboardData = {
@@ -36,21 +36,27 @@ export default function DatawareDashboard() {
   const [error, setError] = useState<string | null>(null);
   const user = getUser();
 
-  type InqItem = { id: number; name: string; company: string; message: string; status: string; created_at: string };
-  type PostItem = { id: number; title: string; category: string; created_at: string };
+  type InqItem = { id: number; name: string; company: string; message: string; status: string; createdAt: string };
+  type PostItem = { id: number; title: string; category: string; createdAt: string };
 
   const loadData = useCallback(async (isRefresh = false) => {
     try {
       if (!isRefresh) setLoading(true);
 
+      const safeFetch = <T,>(url: string, fallback: T) =>
+        apiFetch<T>(url).catch((err) => {
+          if (err?.status === 401) throw err;
+          return fallback;
+        });
+
       const [inquiriesRaw, postsRaw, productsRaw, educationsRaw, seminarsRaw, downloadsRaw, storiesRaw] = await Promise.all([
-        apiFetch<Paged<InqItem> | InqItem[]>("/api/admin/dataware/inquiries?page=0&size=5&sort=created_at,desc").catch(() => [] as InqItem[]),
-        apiFetch<Paged<PostItem> | PostItem[]>("/api/admin/dataware/posts?page=0&size=5&sort=created_at,desc").catch(() => [] as PostItem[]),
-        apiFetch<Paged<unknown> | unknown[]>("/api/admin/dataware/products?page=0&size=1").catch(() => []),
-        apiFetch<Paged<unknown> | unknown[]>("/api/admin/dataware/educations?page=0&size=1").catch(() => []),
-        apiFetch<Paged<unknown> | unknown[]>("/api/admin/dataware/seminars?page=0&size=1").catch(() => []),
-        apiFetch<Paged<unknown> | unknown[]>("/api/admin/dataware/downloads?page=0&size=1").catch(() => []),
-        apiFetch<Paged<unknown> | unknown[]>("/api/admin/dataware/customer-stories?page=0&size=1").catch(() => []),
+        safeFetch<Paged<InqItem> | InqItem[]>("/api/admin/dataware/inquiries?page=0&size=5&sort=createdAt,desc", [] as InqItem[]),
+        safeFetch<Paged<PostItem> | PostItem[]>("/api/admin/dataware/posts?page=0&size=5&sort=createdAt,desc", [] as PostItem[]),
+        safeFetch<Paged<unknown> | unknown[]>("/api/admin/dataware/products?page=0&size=1", []),
+        safeFetch<Paged<unknown> | unknown[]>("/api/admin/dataware/educations?page=0&size=1", []),
+        safeFetch<Paged<unknown> | unknown[]>("/api/admin/dataware/seminars?page=0&size=1", []),
+        safeFetch<Paged<unknown> | unknown[]>("/api/admin/dataware/downloads?page=0&size=1", []),
+        safeFetch<Paged<unknown> | unknown[]>("/api/admin/dataware/customer-stories?page=0&size=1", []),
       ]);
 
       const inquiries = normalize(inquiriesRaw);
@@ -89,10 +95,8 @@ export default function DatawareDashboard() {
     }
   }, []);
 
-  // 초기 로드
   useEffect(() => { loadData(); }, [loadData]);
 
-  // 탭/윈도우 포커스 시 자동 갱신
   useEffect(() => {
     const onFocus = () => { loadData(true); };
     window.addEventListener("focus", onFocus);
@@ -136,7 +140,6 @@ export default function DatawareDashboard() {
 
   return (
     <div className="space-y-8">
-      {/* 헤더 */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900">데이터웨어(엔코아) 관리</h1>
         <p className="text-gray-500 mt-1">
@@ -144,7 +147,6 @@ export default function DatawareDashboard() {
         </p>
       </div>
 
-      {/* 미처리 알림 */}
       {data.newInquiries > 0 && (
         <Link href="/dataware/inquiries"
           className="flex items-center gap-3 bg-orange-50 border border-orange-200 rounded-xl px-5 py-4 hover:bg-orange-100 transition-colors">
@@ -158,7 +160,6 @@ export default function DatawareDashboard() {
         </Link>
       )}
 
-      {/* KPI 카드 */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
         {kpiCards.map(card => (
           <div key={card.label} className={`${card.color} border rounded-xl p-4 flex flex-col items-center text-center`}>
@@ -169,7 +170,6 @@ export default function DatawareDashboard() {
         ))}
       </div>
 
-      {/* 빠른 작업 */}
       <div>
         <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">빠른 작업</h2>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -183,9 +183,7 @@ export default function DatawareDashboard() {
         </div>
       </div>
 
-      {/* 최근 활동 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* 최근 문의 */}
         <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
           <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100">
             <h2 className="text-sm font-semibold text-gray-800">최근 문의</h2>
@@ -212,7 +210,7 @@ export default function DatawareDashboard() {
                       }`}>
                         {inq.status === "NEW" ? "새 문의" : inq.status === "IN_PROGRESS" ? "처리 중" : "완료"}
                       </span>
-                      <span className="text-[10px] text-gray-400 mt-1">{new Date(inq.created_at).toLocaleDateString("ko-KR")}</span>
+                      <span className="text-[10px] text-gray-400 mt-1">{new Date(inq.createdAt).toLocaleDateString("ko-KR")}</span>
                     </div>
                   </div>
                 </li>
@@ -221,7 +219,6 @@ export default function DatawareDashboard() {
           )}
         </div>
 
-        {/* 최근 게시글 */}
         <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
           <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100">
             <h2 className="text-sm font-semibold text-gray-800">최근 게시글</h2>
@@ -241,7 +238,7 @@ export default function DatawareDashboard() {
                       <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold bg-gray-100 text-gray-600">
                         {post.category}
                       </span>
-                      <span className="text-[10px] text-gray-400 mt-1">{new Date(post.created_at).toLocaleDateString("ko-KR")}</span>
+                      <span className="text-[10px] text-gray-400 mt-1">{new Date(post.createdAt).toLocaleDateString("ko-KR")}</span>
                     </div>
                   </div>
                 </li>

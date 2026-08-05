@@ -34,13 +34,13 @@ const CATEGORY_OPTIONS: Record<string, { value: string; label: string }[]> = {
 interface PostForm {
   title: string;
   category: string;
-  body_html: string;
-  thumbnail_url: string;
+  bodyHtml: string;
+  thumbnailUrl: string;
   published: boolean;
 }
 
 const emptyForm: PostForm = {
-  title: "", category: "", body_html: "", thumbnail_url: "", published: true,
+  title: "", category: "", bodyHtml: "", thumbnailUrl: "", published: true,
 };
 
 export default function PostManager({ site }: PostManagerProps) {
@@ -57,8 +57,8 @@ export default function PostManager({ site }: PostManagerProps) {
 
   function openEdit(item: Post) {
     setForm({
-      title: item.title, category: item.category, body_html: item.body_html,
-      thumbnail_url: item.thumbnail_url, published: item.published,
+      title: item.title, category: item.category, bodyHtml: item.bodyHtml,
+      thumbnailUrl: item.thumbnailUrl, published: item.published,
     });
     res.openEdit(item);
   }
@@ -69,8 +69,13 @@ export default function PostManager({ site }: PostManagerProps) {
     await res.save(res.editing?.id ?? null, form);
   }
 
-  function formatDate(s: string) {
-    try { return new Date(s).toLocaleDateString("ko-KR"); } catch { return s; }
+  function formatDate(s: string | undefined | null) {
+    if (!s) return "-";
+    try {
+      const d = new Date(s);
+      if (isNaN(d.getTime())) return "-";
+      return d.toLocaleDateString("ko-KR");
+    } catch { return "-"; }
   }
 
   const columns: Column<Post>[] = [
@@ -94,7 +99,7 @@ export default function PostManager({ site }: PostManagerProps) {
       key: "published", label: "노출", width: "80px",
       render: (item) => <ToggleSwitch checked={item.published} onChange={() => res.patchField(item.id, "published", { published: !item.published })} />,
     },
-    { key: "created_at", label: "작성일", width: "110px", render: (item) => formatDate(item.created_at) },
+    { key: "createdAt", label: "작성일", width: "110px", render: (item) => formatDate(item.createdAt) },
     {
       key: "actions", label: "", width: "100px",
       render: (item) => (
@@ -137,20 +142,20 @@ export default function PostManager({ site }: PostManagerProps) {
             <label className="block text-sm font-medium text-gray-700 mb-1">
               썸네일 이미지 URL <span className="ml-1 text-xs text-gray-400">(이미지 업로드 기능은 추후 지원 예정)</span>
             </label>
-            <input type="url" value={form.thumbnail_url} onChange={(e) => setForm({ ...form, thumbnail_url: e.target.value })}
+            <input type="url" value={form.thumbnailUrl} onChange={(e) => setForm({ ...form, thumbnailUrl: e.target.value })}
               placeholder="https://example.com/image.jpg"
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
-            {isValidImageUrl(form.thumbnail_url) && (
+            {isValidImageUrl(form.thumbnailUrl) && (
               <div className="mt-2 p-2 bg-gray-50 rounded-lg inline-block">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={form.thumbnail_url} alt="썸네일 미리보기" className="max-h-32 rounded" />
+                <img src={form.thumbnailUrl} alt="썸네일 미리보기" className="max-h-32 rounded" />
               </div>
             )}
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">본문</label>
-            <RichEditor value={form.body_html} onChange={(html) => setForm({ ...form, body_html: html })} />
+            <RichEditor value={form.bodyHtml} onChange={(html) => setForm({ ...form, bodyHtml: html })} />
           </div>
 
           <div className="flex items-center gap-2">

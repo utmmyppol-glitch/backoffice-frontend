@@ -67,8 +67,13 @@ export default function SeminarManager() {
     }
   }
 
-  function formatDate(s: string) {
-    try { return new Date(s).toLocaleDateString("ko-KR"); } catch { return s; }
+  function formatDate(s: string | undefined | null) {
+    if (!s) return "-";
+    try {
+      const d = new Date(s);
+      if (isNaN(d.getTime())) return "-";
+      return d.toLocaleDateString("ko-KR");
+    } catch { return "-"; }
   }
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
@@ -121,11 +126,11 @@ export default function SeminarManager() {
                       className="text-blue-600 hover:underline text-left">{item.name}</button>
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-700">{item.company || "-"}</td>
-                  <td className="px-4 py-3 text-sm text-gray-700">{item.seminar_title}</td>
-                  <td className="px-4 py-3 text-sm text-gray-500">{item.seminar_date || "-"}</td>
+                  <td className="px-4 py-3 text-sm text-gray-700">{item.seminarTitle}</td>
+                  <td className="px-4 py-3 text-sm text-gray-500">{item.seminarDate || "-"}</td>
                   <td className="px-4 py-3 text-sm text-gray-700">{item.participants}명</td>
                   <td className="px-4 py-3 text-sm"><StatusBadge status={item.status} /></td>
-                  <td className="px-4 py-3 text-sm text-gray-500">{formatDate(item.created_at)}</td>
+                  <td className="px-4 py-3 text-sm text-gray-500">{formatDate(item.createdAt)}</td>
                   <td className="px-4 py-3 text-sm">
                     <button onClick={() => { setSelected(item); setDetailOpen(true); }}
                       className="px-2 py-1 text-xs text-gray-600 hover:bg-gray-100 rounded">상세</button>
@@ -156,10 +161,10 @@ export default function SeminarManager() {
               <div><span className="text-xs text-gray-500">회사</span><p className="text-sm font-medium">{selected.company || "-"}</p></div>
               <div><span className="text-xs text-gray-500">이메일</span><p className="text-sm">{selected.email || "-"}</p></div>
               <div><span className="text-xs text-gray-500">연락처</span><p className="text-sm">{selected.phone || "-"}</p></div>
-              <div><span className="text-xs text-gray-500">세미나명</span><p className="text-sm font-medium">{selected.seminar_title}</p></div>
-              <div><span className="text-xs text-gray-500">세미나 일자</span><p className="text-sm">{selected.seminar_date || "-"}</p></div>
+              <div><span className="text-xs text-gray-500">세미나명</span><p className="text-sm font-medium">{selected.seminarTitle}</p></div>
+              <div><span className="text-xs text-gray-500">세미나 일자</span><p className="text-sm">{selected.seminarDate || "-"}</p></div>
               <div><span className="text-xs text-gray-500">참가 인원</span><p className="text-sm">{selected.participants}명</p></div>
-              <div><span className="text-xs text-gray-500">개인정보 동의</span><p className="text-sm">{selected.privacy_agreed ? "동의함" : "미동의"}</p></div>
+              <div><span className="text-xs text-gray-500">개인정보 동의</span><p className="text-sm">{selected.privacyAgreed ? "동의함" : "미동의"}</p></div>
             </div>
             {selected.message && (
               <div>
@@ -178,7 +183,7 @@ export default function SeminarManager() {
                 </select>
               )}
             </div>
-            <div className="text-xs text-gray-400">신청일: {formatDate(selected.created_at)}</div>
+            <div className="text-xs text-gray-400">신청일: {formatDate(selected.createdAt)}</div>
           </div>
         )}
       </Modal>

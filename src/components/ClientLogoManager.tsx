@@ -15,12 +15,12 @@ interface ClientLogoManagerProps {
 
 interface LogoForm {
   name: string;
-  image_url: string;
-  sort_order: number;
-  is_active: boolean;
+  imageUrl: string;
+  sortOrder: number;
+  isActive: boolean;
 }
 
-const emptyForm: LogoForm = { name: "", image_url: "", sort_order: 0, is_active: true };
+const emptyForm: LogoForm = { name: "", imageUrl: "", sortOrder: 0, isActive: true };
 
 export default function ClientLogoManager({ site }: ClientLogoManagerProps) {
   const res = useResource<ClientLogo>({ endpoint: "client-logos", site, pageSize: 20, entityName: "로고" });
@@ -29,7 +29,7 @@ export default function ClientLogoManager({ site }: ClientLogoManagerProps) {
   function openAdd() { setForm(emptyForm); res.openAdd(); }
 
   function openEdit(item: ClientLogo) {
-    setForm({ name: item.name, image_url: item.image_url, sort_order: item.sort_order, is_active: item.is_active });
+    setForm({ name: item.name, imageUrl: item.imageUrl, sortOrder: item.sortOrder, isActive: item.isActive });
     res.openEdit(item);
   }
 
@@ -42,8 +42,8 @@ export default function ClientLogoManager({ site }: ClientLogoManagerProps) {
     {
       key: "image", label: "로고", width: "80px",
       render: (item) =>
-        item.image_url ? (
-          <NextImage src={item.image_url} alt={item.name} width={56} height={40}
+        item.imageUrl ? (
+          <NextImage src={item.imageUrl} alt={item.name} width={56} height={40}
             className="w-14 h-10 object-contain rounded border bg-white p-1" unoptimized />
         ) : <span className="text-gray-300 text-xs">없음</span>,
     },
@@ -53,10 +53,10 @@ export default function ClientLogoManager({ site }: ClientLogoManagerProps) {
         <button onClick={() => openEdit(item)} className="text-blue-600 hover:underline font-medium text-left">{item.name}</button>
       ),
     },
-    { key: "sort_order", label: "순서", width: "70px", render: (item) => item.sort_order },
+    { key: "sortOrder", label: "순서", width: "70px", render: (item) => item.sortOrder },
     {
-      key: "is_active", label: "노출", width: "80px",
-      render: (item) => <ToggleSwitch checked={item.is_active} onChange={() => res.patch(item.id, { ...item, is_active: !item.is_active })} />,
+      key: "isActive", label: "노출", width: "80px",
+      render: (item) => <ToggleSwitch checked={item.isActive} onChange={() => res.patch(item.id, { ...item, isActive: !item.isActive })} />,
     },
     {
       key: "actions", label: "", width: "100px",
@@ -89,24 +89,24 @@ export default function ClientLogoManager({ site }: ClientLogoManagerProps) {
             <label className="block text-sm font-medium text-gray-700 mb-1">
               로고 이미지 URL <span className="ml-1 text-xs text-gray-400 font-normal">(이미지 업로드 기능은 추후 지원 예정)</span>
             </label>
-            <input type="url" value={form.image_url} onChange={(e) => setForm({ ...form, image_url: e.target.value })}
+            <input type="url" value={form.imageUrl} onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
               placeholder="https://example.com/logo.png"
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
-            {isValidImageUrl(form.image_url) && (
+            {isValidImageUrl(form.imageUrl) && (
               <div className="mt-2 p-3 bg-gray-50 rounded-lg inline-block">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={form.image_url} alt="로고 미리보기" className="max-h-20 object-contain" />
+                <img src={form.imageUrl} alt="로고 미리보기" className="max-h-20 object-contain" />
               </div>
             )}
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">표시 순서</label>
-            <input type="number" value={form.sort_order} onChange={(e) => setForm({ ...form, sort_order: Number(e.target.value) })}
+            <input type="number" value={form.sortOrder} onChange={(e) => setForm({ ...form, sortOrder: Number(e.target.value) })}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
           </div>
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-gray-700">노출 여부</span>
-            <ToggleSwitch checked={form.is_active} onChange={(v) => setForm({ ...form, is_active: v })} />
+            <ToggleSwitch checked={form.isActive} onChange={(v) => setForm({ ...form, isActive: v })} />
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <button onClick={() => res.setModalOpen(false)} className="px-4 py-2 text-sm text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">취소</button>

@@ -53,7 +53,7 @@ export default function ContentManager({ site }: ContentManagerProps) {
       // Auto-select first region if none selected
       if (data.length > 0 && !selected) {
         setSelected(data[0]);
-        setEditHtml(data[0].body_html);
+        setEditHtml(data[0].bodyHtml);
       }
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : "콘텐츠를 불러오지 못했습니다";
@@ -75,7 +75,7 @@ export default function ContentManager({ site }: ContentManagerProps) {
       if (!ok) return;
     }
     setSelected(region);
-    setEditHtml(region.body_html);
+    setEditHtml(region.bodyHtml);
     setDirty(false);
   }
 
@@ -86,7 +86,7 @@ export default function ContentManager({ site }: ContentManagerProps) {
       setSaving(true);
       await apiFetch(`/api/admin/${site}/contents/${selected.id}`, {
         method: "PUT",
-        body: JSON.stringify({ body_html: editHtml }),
+        body: JSON.stringify({ bodyHtml: editHtml }),
       });
       toast("success", "저장되었습니다");
       setDirty(false);
@@ -96,7 +96,7 @@ export default function ContentManager({ site }: ContentManagerProps) {
       const updated = data.find((r) => r.id === selected.id);
       if (updated) {
         setSelected(updated);
-        setEditHtml(updated.body_html);
+        setEditHtml(updated.bodyHtml);
       }
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : "저장에 실패했습니다";
@@ -131,7 +131,7 @@ export default function ContentManager({ site }: ContentManagerProps) {
     try {
       await apiFetch(`/api/admin/${site}/contents/${selected.id}/revert`, {
         method: "POST",
-        body: JSON.stringify({ history_id: historyId }),
+        body: JSON.stringify({ historyId: historyId }),
       });
       toast("success", "되돌리기가 완료되었습니다");
       setHistoryOpen(false);
@@ -142,7 +142,7 @@ export default function ContentManager({ site }: ContentManagerProps) {
       const updated = data.find((r) => r.id === selected.id);
       if (updated) {
         setSelected(updated);
-        setEditHtml(updated.body_html);
+        setEditHtml(updated.bodyHtml);
         setDirty(false);
       }
     } catch (err) {
@@ -151,9 +151,12 @@ export default function ContentManager({ site }: ContentManagerProps) {
     }
   }
 
-  function formatDate(dateStr: string) {
+  function formatDate(dateStr: string | undefined | null) {
+    if (!dateStr) return "-";
     try {
-      return new Date(dateStr).toLocaleString("ko-KR", {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return "-";
+      return d.toLocaleString("ko-KR", {
         year: "numeric",
         month: "2-digit",
         day: "2-digit",
@@ -161,7 +164,7 @@ export default function ContentManager({ site }: ContentManagerProps) {
         minute: "2-digit",
       });
     } catch {
-      return dateStr;
+      return "-";
     }
   }
 
@@ -202,9 +205,9 @@ export default function ContentManager({ site }: ContentManagerProps) {
                         : "text-gray-700 hover:bg-gray-50"
                     }`}
                   >
-                    <div className="font-medium">{region.display_name}</div>
+                    <div className="font-medium">{region.displayName}</div>
                     <div className="text-xs text-gray-400 mt-0.5">
-                      {formatDate(region.updated_at)}
+                      {formatDate(region.updatedAt)}
                     </div>
                   </button>
                 ))
@@ -221,10 +224,10 @@ export default function ContentManager({ site }: ContentManagerProps) {
               <div className="flex items-center justify-between px-6 py-3 border-b border-gray-200 bg-gray-50">
                 <div>
                   <h2 className="text-base font-semibold text-gray-900">
-                    {selected.display_name}
+                    {selected.displayName}
                   </h2>
                   <p className="text-xs text-gray-400">
-                    마지막 수정: {formatDate(selected.updated_at)}
+                    마지막 수정: {formatDate(selected.updatedAt)}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -277,7 +280,7 @@ export default function ContentManager({ site }: ContentManagerProps) {
           setHistoryOpen(false);
           setPreviewHtml(null);
         }}
-        title={`수정 이력 — ${selected?.display_name ?? ""}`}
+        title={`수정 이력 — ${selected?.displayName ?? ""}`}
         width="max-w-3xl"
       >
         {historyLoading ? (
@@ -290,17 +293,17 @@ export default function ContentManager({ site }: ContentManagerProps) {
               <div key={h.id} className="border border-gray-200 rounded-lg overflow-hidden">
                 <div className="flex items-center justify-between px-4 py-2.5 bg-gray-50">
                   <div className="text-sm">
-                    <span className="font-medium text-gray-700">{h.edited_by}</span>
-                    <span className="ml-2 text-gray-400">{formatDate(h.created_at)}</span>
+                    <span className="font-medium text-gray-700">{h.editedBy}</span>
+                    <span className="ml-2 text-gray-400">{formatDate(h.createdAt)}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() =>
-                        setPreviewHtml(previewHtml === h.body_html ? null : h.body_html)
+                        setPreviewHtml(previewHtml === h.bodyHtml ? null : h.bodyHtml)
                       }
                       className="text-xs text-blue-600 hover:underline"
                     >
-                      {previewHtml === h.body_html ? "미리보기 닫기" : "미리보기"}
+                      {previewHtml === h.bodyHtml ? "미리보기 닫기" : "미리보기"}
                     </button>
                     <button
                       onClick={() => handleRevert(h.id)}
@@ -310,10 +313,10 @@ export default function ContentManager({ site }: ContentManagerProps) {
                     </button>
                   </div>
                 </div>
-                {previewHtml === h.body_html && (
+                {previewHtml === h.bodyHtml && (
                   <div
                     className="p-4 text-sm prose prose-sm max-w-none border-t border-gray-200"
-                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(h.body_html) }}
+                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(h.bodyHtml) }}
                   />
                 )}
               </div>
