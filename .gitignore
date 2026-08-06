@@ -36,3 +36,6 @@ Thumbs.db
 
 # claude temp
 .claude/
+
+# broaden env ignore
+.env*

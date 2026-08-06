@@ -1,0 +1,132 @@
+stages:
+  - build
+  - docker
+  - deploy
+  - notify
+
+variables:
+  DOCKER_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+
+# ---- Build ----
+build:
+  stage: build
+  image: node:18-alpine
+  cache:
+    key:
+      files: [package-lock.json]
+    paths: [node_modules/]
+  script:
+    - npm ci
+    - npm run lint --if-present
+    - npm run build
+  artifacts:
+    paths:
+      - .next/
+    expire_in: 1 hour
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+
+# ---- Docker Image ----
+# 러너가 배포서버와 동일 호스트에서 docker.sock을 공유하므로
+# 레지스트리 push 없이 로컬 빌드 이미지를 그대로 deploy 스테이지에서 사용
+# NEXT_PUBLIC_API_URL은 next.js가 빌드 시점에 인라인하므로 build-arg로 전달 (프로젝트 CI/CD 변수에 설정)
+docker:
+  stage: docker
+  image: docker:latest
+  needs: ["build"]
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+  script:
+    - docker build --build-arg NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL -t $DOCKER_IMAGE .
+
+# ---- Deploy ----
+deploy:
+  stage: deploy
+  image: docker:latest
+  needs: ["docker"]
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+  script:
+    - chmod +x deploy/deploy.sh
+    - DOCKER_IMAGE=$DOCKER_IMAGE ./deploy/deploy.sh
+
+# ---- Notify (Teams) ----
+notify:success:
+  stage: notify
+  image: alpine:latest
+  needs: ["deploy"]
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main" && $TEAMS_WEBHOOK_URL'
+      when: on_success
+  before_script: [apk add --no-cache curl]
+  script:
+    - |
+      curl -sS -X POST "$TEAMS_WEBHOOK_URL" \
+        -H "Content-Type: application/json" \
+        -d @- <<JSON
+      {
+        "type": "message",
+        "attachments": [
+          {
+            "contentType": "application/vnd.microsoft.card.adaptive",
+            "content": {
+              "type": "AdaptiveCard",
+              "\$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+              "version": "1.4",
+              "body": [
+                { "type": "TextBlock", "size": "Large", "weight": "Bolder", "color": "Good", "text": "🚀 배포 완료: $CI_PROJECT_NAME" },
+                { "type": "FactSet", "facts": [
+                  { "title": "프로젝트", "value": "$CI_PROJECT_PATH" },
+                  { "title": "작업자", "value": "$GITLAB_USER_NAME" },
+                  { "title": "커밋", "value": "[$CI_COMMIT_SHORT_SHA]($CI_PROJECT_URL/-/commit/$CI_COMMIT_SHA)" }
+                ]}
+              ]
+            }
+          }
+        ]
+      }
+      JSON
+
+notify:failure:
+  stage: notify
+  image: alpine:latest
+  needs: ["deploy"]
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main" && $TEAMS_WEBHOOK_URL'
+      when: on_failure
+  before_script:
+    - apk add --no-cache curl
+  script:
+    - |
+      curl -sS -X POST "$TEAMS_WEBHOOK_URL" \
+        -H "Content-Type: application/json" \
+        -d @- <<JSON
+      {
+        "type": "message",
+        "attachments": [
+          {
+            "contentType": "application/vnd.microsoft.card.adaptive",
+            "content": {
+              "type": "AdaptiveCard",
+              "\$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+              "version": "1.4",
+              "body": [
+                { "type": "TextBlock", "size": "Large", "weight": "Bolder", "color": "Attention", "text": "❌ 배포 실패 (Failed)" },
+                { "type": "FactSet", "facts": [
+                  { "title": "프로젝트", "value": "$CI_PROJECT_PATH" },
+                  { "title": "브랜치", "value": "$CI_COMMIT_BRANCH" },
+                  { "title": "작업자", "value": "$GITLAB_USER_NAME" },
+                  { "title": "커밋", "value": "[$CI_COMMIT_SHORT_SHA]($CI_PROJECT_URL/-/commit/$CI_COMMIT_SHA)" }
+                ]},
+                { "type": "TextBlock", "wrap": true, "text": "배포 중 에러가 발생했습니다. 파이프라인 로그를 확인하세요." }
+              ],
+              "actions": [
+                { "type": "Action.OpenUrl", "title": "🔗 파이프라인 로그", "url": "$CI_PIPELINE_URL" },
+                { "type": "Action.OpenUrl", "title": "커밋 보기", "url": "$CI_PROJECT_URL/-/commit/$CI_COMMIT_SHA" }
+              ]
+            }
+          }
+        ]
+      }
+      JSON
