@@ -6,6 +6,7 @@
 
 ## 기술 스택
 
+- **Node.js 20+**
 - **Next.js 14** (App Router)
 - **React 18** / TypeScript
 - **Tailwind CSS**
