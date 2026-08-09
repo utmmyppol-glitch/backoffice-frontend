@@ -85,6 +85,9 @@ function deepSet(obj: unknown, path: string, value: string): unknown {
   let cur: Record<string | number, unknown> = clone as Record<string | number, unknown>;
   for (let i = 0; i < parts.length - 1; i++) {
     const k: string | number = /^\d+$/.test(parts[i]) ? Number(parts[i]) : parts[i];
+    if (cur[k] == null) {
+      cur[k] = /^\d+$/.test(parts[i + 1]) ? [] : {};
+    }
     cur = cur[k] as Record<string | number, unknown>;
   }
   const last: string | number = /^\d+$/.test(parts[parts.length - 1]) ? Number(parts[parts.length - 1]) : parts[parts.length - 1];
