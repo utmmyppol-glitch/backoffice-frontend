@@ -121,7 +121,7 @@ export default function UnionDashboard() {
     { label: "페이지 편집", href: "/union/company-about", icon: "🖊️" },
     { label: "새 게시글", href: "/union/posts", icon: "➕" },
     { label: "문의 관리", href: "/union/inquiries", icon: "💬" },
-    { label: "배너 관리", href: "/union/banners", icon: "🖼️" },
+    { label: "고객사 로고", href: "/union/client-logos", icon: "🖼️" },
   ];
 
   return (
