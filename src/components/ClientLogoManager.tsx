@@ -6,8 +6,7 @@ import useResource from "@/hooks/useResource";
 import DataTable, { Column } from "./DataTable";
 import Modal from "./Modal";
 import ToggleSwitch from "./ToggleSwitch";
-import NextImage from "next/image";
-import { isValidImageUrl } from "@/lib/url";
+import ImageUploadField from "./ImageUploadField";
 
 interface ClientLogoManagerProps {
   site: "union" | "dataware";
@@ -15,12 +14,13 @@ interface ClientLogoManagerProps {
 
 interface LogoForm {
   name: string;
-  imageUrl: string;
+  logoUrl: string;
   sortOrder: number;
   isActive: boolean;
+  showOnHome: boolean;
 }
 
-const emptyForm: LogoForm = { name: "", imageUrl: "", sortOrder: 0, isActive: true };
+const emptyForm: LogoForm = { name: "", logoUrl: "", sortOrder: 0, isActive: true, showOnHome: false };
 
 export default function ClientLogoManager({ site }: ClientLogoManagerProps) {
   const res = useResource<ClientLogo>({ endpoint: "client-logos", site, pageSize: 20, entityName: "로고" });
@@ -29,7 +29,7 @@ export default function ClientLogoManager({ site }: ClientLogoManagerProps) {
   function openAdd() { setForm(emptyForm); res.openAdd(); }
 
   function openEdit(item: ClientLogo) {
-    setForm({ name: item.name, imageUrl: item.imageUrl, sortOrder: item.sortOrder, isActive: item.isActive });
+    setForm({ name: item.name, logoUrl: item.logoUrl || "", sortOrder: item.sortOrder, isActive: item.isActive, showOnHome: item.showOnHome ?? false });
     res.openEdit(item);
   }
 
@@ -42,10 +42,15 @@ export default function ClientLogoManager({ site }: ClientLogoManagerProps) {
     {
       key: "image", label: "로고", width: "80px",
       render: (item) =>
-        item.imageUrl ? (
-          <NextImage src={item.imageUrl} alt={item.name} width={56} height={40}
-            className="w-14 h-10 object-contain rounded border bg-white p-1" unoptimized />
-        ) : <span className="text-gray-300 text-xs">없음</span>,
+        item.logoUrl ? (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img src={item.logoUrl} alt={item.name}
+            className="w-14 h-10 object-contain rounded border bg-white p-1" />
+        ) : (
+          <div className="w-14 h-10 flex items-center justify-center rounded border bg-gray-100 text-gray-400 text-sm font-semibold">
+            {item.name?.charAt(0) || "?"}
+          </div>
+        ),
     },
     {
       key: "name", label: "고객사",
@@ -57,6 +62,10 @@ export default function ClientLogoManager({ site }: ClientLogoManagerProps) {
     {
       key: "isActive", label: "노출", width: "80px",
       render: (item) => <ToggleSwitch checked={item.isActive} onChange={() => res.patch(item.id, { ...item, isActive: !item.isActive })} />,
+    },
+    {
+      key: "showOnHome", label: "홈", width: "60px",
+      render: (item) => <ToggleSwitch checked={item.showOnHome ?? false} onChange={() => res.patch(item.id, { ...item, showOnHome: !(item.showOnHome ?? false) })} />,
     },
     {
       key: "actions", label: "", width: "100px",
@@ -86,18 +95,8 @@ export default function ClientLogoManager({ site }: ClientLogoManagerProps) {
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              로고 이미지 URL <span className="ml-1 text-xs text-gray-400 font-normal">(이미지 업로드 기능은 추후 지원 예정)</span>
-            </label>
-            <input type="url" value={form.imageUrl} onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
-              placeholder="https://example.com/logo.png"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
-            {isValidImageUrl(form.imageUrl) && (
-              <div className="mt-2 p-3 bg-gray-50 rounded-lg inline-block">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={form.imageUrl} alt="로고 미리보기" className="max-h-20 object-contain" />
-              </div>
-            )}
+            <label className="block text-sm font-medium text-gray-700 mb-1">로고 이미지</label>
+            <ImageUploadField value={form.logoUrl} onChange={(url) => setForm({ ...form, logoUrl: url })} site={site} />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">표시 순서</label>
@@ -107,6 +106,10 @@ export default function ClientLogoManager({ site }: ClientLogoManagerProps) {
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-gray-700">노출 여부</span>
             <ToggleSwitch checked={form.isActive} onChange={(v) => setForm({ ...form, isActive: v })} />
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-gray-700">홈에 노출</span>
+            <ToggleSwitch checked={form.showOnHome} onChange={(v) => setForm({ ...form, showOnHome: v })} />
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <button onClick={() => res.setModalOpen(false)} className="px-4 py-2 text-sm text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">취소</button>

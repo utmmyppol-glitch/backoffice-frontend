@@ -34,13 +34,13 @@ const CATEGORY_OPTIONS: Record<string, { value: string; label: string }[]> = {
 interface PostForm {
   title: string;
   category: string;
-  bodyHtml: string;
+  content: string;
   thumbnailUrl: string;
   published: boolean;
 }
 
 const emptyForm: PostForm = {
-  title: "", category: "", bodyHtml: "", thumbnailUrl: "", published: true,
+  title: "", category: "", content: "", thumbnailUrl: "", published: true,
 };
 
 export default function PostManager({ site }: PostManagerProps) {
@@ -57,7 +57,7 @@ export default function PostManager({ site }: PostManagerProps) {
 
   function openEdit(item: Post) {
     setForm({
-      title: item.title, category: item.category, bodyHtml: item.bodyHtml,
+      title: item.title, category: item.category, content: item.content,
       thumbnailUrl: item.thumbnailUrl, published: item.published,
     });
     res.openEdit(item);
@@ -155,7 +155,7 @@ export default function PostManager({ site }: PostManagerProps) {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">본문</label>
-            <RichEditor value={form.bodyHtml} onChange={(html) => setForm({ ...form, bodyHtml: html })} />
+            <RichEditor value={form.content} onChange={(html) => setForm({ ...form, content: html })} site={site} />
           </div>
 
           <div className="flex items-center gap-2">

@@ -50,7 +50,9 @@ export default function useResource<T extends { id: number }>({
       if (searchQuery) params.set("search", searchQuery);
       const res = await apiFetch<PaginatedResponse<T> | T[]>(`${basePath}?${params}`);
       if (Array.isArray(res)) {
-        setItems(res);
+        // 백엔드가 전체 배열을 반환하면 클라이언트에서 페이지네이션
+        const start = (page - 1) * pageSize;
+        setItems(res.slice(start, start + pageSize));
         setTotal(res.length);
       } else {
         setItems(res.content);

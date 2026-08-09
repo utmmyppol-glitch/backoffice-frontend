@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { getUser, clearUser, getAvailableSites, canAccessSite, User } from "@/lib/auth";
+import { getPagePermission } from "@/lib/permissions";
 
 export default function AdminLayout({
   children,
@@ -24,7 +25,14 @@ export default function AdminLayout({
     const currentSite = pathname.startsWith("/dataware") ? "dataware" : "union";
     if (!canAccessSite(u, currentSite)) {
       const allowed = getAvailableSites(u);
-      router.replace(allowed.length > 0 ? `/${allowed[0]}/dashboard` : "/login");
+      router.replace(allowed.length > 0 ? `/${allowed[0]}/downloads` : "/login");
+      return;
+    }
+    // VIEWER: 허용된 페이지 아니면 다운로드로 리다이렉트
+    const segments = pathname.split("/");
+    const page = segments[2] || "dashboard";
+    if (getPagePermission(u, currentSite as "union" | "dataware", page) === "none") {
+      router.replace(`/${currentSite}/downloads`);
       return;
     }
     setUserState(u);

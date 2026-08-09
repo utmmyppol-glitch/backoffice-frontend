@@ -132,7 +132,7 @@ export default function ProductManager() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">제품 설명</label>
-            <RichEditor value={form.descriptionHtml} onChange={(html) => setForm({ ...form, descriptionHtml: html })} />
+            <RichEditor value={form.descriptionHtml} onChange={(html) => setForm({ ...form, descriptionHtml: html })} site="dataware" />
           </div>
 
           <div>

@@ -40,7 +40,11 @@ export default function LoginPage() {
 
       setUser(user);
       const sites = getAvailableSites(user);
-      router.replace(`/${sites[0]}/dashboard`);
+      if (user.role === "VIEWER") {
+        router.replace(`/${sites[0]}/downloads`);
+      } else {
+        router.replace(`/${sites[0]}/dashboard`);
+      }
     } catch {
       setError("아이디 또는 비밀번호가 올바르지 않습니다");
     } finally {

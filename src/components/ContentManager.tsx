@@ -262,6 +262,7 @@ export default function ContentManager({ site }: ContentManagerProps) {
                     setEditHtml(html);
                     setDirty(true);
                   }}
+                  site={site}
                 />
               </div>
             </div>

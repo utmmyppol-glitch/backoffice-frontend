@@ -43,7 +43,7 @@ const TEXTAREA_HINTS = new Set(["desc", "text", "quote", "hoursNote"]);
 const LABEL_MAP: Record<string, string> = {
   title: "제목", accent: "강조 텍스트", desc: "설명", text: "본문",
   subtitle: "부제", quote: "인용문", ceo: "CEO", img: "이미지",
-  num: "숫자", label: "라벨", name: "이름",
+  num: "숫자", label: "라벨", name: "이름", position: "직책", email: "이메일",
   line1: "주소 1줄", line2: "주소 2줄", mapNote: "지도 안내문",
   tel: "전화", fax: "팩스", emailSales: "영업 이메일", emailGeneral: "대표 이메일",
   hours: "운영시간", hoursNote: "운영 안내", line: "노선", type: "종류", routes: "노선번호",
@@ -250,7 +250,6 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
   const [saving, setSaving] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [historyTarget, setHistoryTarget] = useState<string | null>(null);
-  const [viewportMode, setViewportMode] = useState<"desktop" | "tablet" | "mobile">("desktop");
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
   const toggleSection = useCallback((key: string) => {
     setCollapsedSections(prev => {
@@ -309,7 +308,7 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
   useEffect(() => {
     const handler = (e: MessageEvent) => {
       if (e.data?.type === "editable-manifest") {
-        const fields = e.data.fields as ManifestField[];
+        const fields = (e.data.fields as ManifestField[]) ?? [];
         const newPath = e.data.path as string | undefined;
         const isNewPage = !loadedRef.current || (newPath != null && newPath !== pageUrlRef.current);
 
@@ -548,7 +547,7 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
         {field.type === "image" ? (
           <ImageUploadField value={value} onChange={url => updateField(field.id, url)} site={site} previewBaseUrl={previewBaseUrl} />
         ) : isTextarea ? (
-          <RichEditor value={value} onChange={html => updateField(field.id, html)} />
+          <RichEditor value={value} onChange={html => updateField(field.id, html)} site={site} />
         ) : (
           <textarea value={stripHtml(value)} onChange={e => updateField(field.id, e.target.value)}
             rows={1}
@@ -631,25 +630,16 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
           </div>
           <button onClick={() => loadPage(pageUrl)}
             className="text-xs text-gray-500 hover:text-gray-800 px-2 py-1 rounded hover:bg-gray-100 shrink-0">↻</button>
-          <div className="flex items-center gap-0.5 ml-1 border-l border-gray-200 pl-2">
-            {([["desktop", "🖥", "데스크탑"], ["tablet", "📱", "768px"], ["mobile", "📲", "390px"]] as const).map(([mode, icon, label]) => (
-              <button key={mode} onClick={() => setViewportMode(mode)}
-                className={`text-[11px] px-1.5 py-0.5 rounded transition-colors ${viewportMode === mode ? "bg-gray-800 text-white" : "text-gray-400 hover:text-gray-700 hover:bg-gray-100"}`}
-                title={label}>{icon}</button>
-            ))}
-            <a href={`${previewBaseUrl}${pageUrl}`} target="_blank" rel="noopener noreferrer"
-              className="text-[11px] px-1.5 py-0.5 rounded text-gray-400 hover:text-gray-700 hover:bg-gray-100 ml-0.5"
-              title="실제 사이트에서 열기">↗</a>
-          </div>
+          <a href={`${previewBaseUrl}${pageUrl}`} target="_blank" rel="noopener noreferrer"
+            className="text-[11px] px-1.5 py-0.5 rounded text-gray-400 hover:text-gray-700 hover:bg-gray-100 ml-1 border-l border-gray-200 pl-2"
+            title="실제 사이트에서 열기">↗ 사이트로 이동</a>
         </div>
         <div className="flex-1 flex items-start justify-center bg-gray-100 overflow-auto">
           <iframe ref={iframeRef} src={`${previewBaseUrl}${pageUrl}?_edit=1`}
             className="bg-white h-full"
             style={{
               border: "none",
-              width: viewportMode === "tablet" ? 768 : viewportMode === "mobile" ? 390 : "100%",
-              maxWidth: "100%",
-              boxShadow: viewportMode !== "desktop" ? "0 0 0 1px rgba(0,0,0,.1)" : "none",
+              width: "100%",
               pointerEvents: dragging ? "none" : "auto",
             }}
             title="미리보기"

@@ -135,7 +135,6 @@ export default function DatawareDashboard() {
     { label: "페이지 편집", href: "/dataware/company-about", icon: "🖊️" },
     { label: "새 게시글", href: "/dataware/posts", icon: "➕" },
     { label: "문의 관리", href: "/dataware/inquiries", icon: "💬" },
-    { label: "배너 관리", href: "/dataware/banners", icon: "🖼️" },
   ];
 
   return (

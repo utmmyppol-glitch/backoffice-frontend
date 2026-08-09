@@ -8,7 +8,9 @@ export async function apiFetch<T>(
     typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
   const headers: Record<string, string> = {
-    "Content-Type": "application/json",
+    "Content-Type": "application/json; charset=UTF-8",
+    "Accept": "application/json",
+    "Accept-Charset": "UTF-8",
     ...(options.headers as Record<string, string>),
   };
 
@@ -33,17 +35,21 @@ export async function apiFetch<T>(
   }
 
   if (res.status === 403) {
-    const body = await res.json().catch(() => ({}));
+    const body = await res.arrayBuffer().then(b => JSON.parse(new TextDecoder("utf-8").decode(b))).catch(() => ({}));
     throw new ApiError(res.status, body.message || "접근 권한이 없습니다");
   }
 
   if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
+    const body = await res.arrayBuffer().then(b => JSON.parse(new TextDecoder("utf-8").decode(b))).catch(() => ({}));
     throw new ApiError(res.status, body.message || "요청 실패");
   }
 
   if (res.status === 204) return undefined as T;
-  return res.json();
+
+  // 한글 깨짐 방지: ArrayBuffer → UTF-8 명시 디코딩
+  const buf = await res.arrayBuffer();
+  const text = new TextDecoder("utf-8").decode(buf);
+  return JSON.parse(text);
 }
 
 export class ApiError extends Error {

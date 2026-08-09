@@ -47,7 +47,7 @@ export function filterMenuForUser(
     if (site === "dataware") {
       return items.filter((item) => {
         const path = item.href.split("/").pop();
-        return path === "dashboard" || path === "downloads";
+        return path === "downloads";
       });
     }
     return [];

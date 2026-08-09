@@ -57,7 +57,7 @@ export interface Post {
   id: number;
   title: string;
   category: string;
-  bodyHtml: string;
+  content: string;
   thumbnailUrl: string;
   published: boolean;
   createdAt: string;
@@ -82,9 +82,10 @@ export interface Banner {
 export interface ClientLogo {
   id: number;
   name: string;
-  imageUrl: string;
+  logoUrl: string;
   sortOrder: number;
   isActive: boolean;
+  showOnHome?: boolean;
 }
 
 // ── 고객 사례 ──
@@ -93,11 +94,14 @@ export interface CustomerStory {
   company: string;
   industry: string;
   title: string;
-  bodyHtml: string;
+  content: string;
   thumbnailUrl: string;
   published: boolean;
   createdAt: string;
   updatedAt: string;
+  slug?: string;
+  logoUrl?: string;
+  detailJson?: string | null;
 }
 
 // ── 문의 ──
@@ -182,6 +186,42 @@ export interface Insight {
   status: InsightStatus;
   approvedAt: string | null;
   approvedBy: string | null;
+}
+
+// ── 연혁 (union) ──
+export interface HistoryItem {
+  id: number;
+  year: string;
+  title: string;
+  events: string;
+  sortOrder: number;
+  isActive: boolean;
+}
+
+// ── 용어사전 (union) ──
+export interface GlossaryTerm {
+  id: number;
+  term: string;
+  fullName: string;
+  definition: string;
+  category: string;
+  sortOrder: number;
+  isActive: boolean;
+}
+
+// ── 가격표 (dataware) ──
+export interface PricingPlan {
+  id: number;
+  name: string;
+  licenseType: string;
+  price: number | null;
+  originalPrice: number | null;
+  priceDisplay: string;
+  features: string;
+  badge: string;
+  isPopular: boolean;
+  sortOrder: number;
+  isActive: boolean;
 }
 
 // ── 제품 (dataware 전용) ──
