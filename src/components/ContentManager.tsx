@@ -84,9 +84,14 @@ export default function ContentManager({ site }: ContentManagerProps) {
     if (!selected) return;
     try {
       setSaving(true);
-      await apiFetch(`/api/admin/${site}/contents/${selected.id}`, {
+      await apiFetch(`/api/admin/${site}/contents`, {
         method: "PUT",
-        body: JSON.stringify({ bodyHtml: editHtml }),
+        body: JSON.stringify({
+          menuId: selected.menuId ?? null,
+          regionKey: selected.regionKey,
+          title: selected.title,
+          bodyHtml: editHtml,
+        }),
       });
       toast("success", "저장되었습니다");
       setDirty(false);

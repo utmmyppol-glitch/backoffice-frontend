@@ -30,9 +30,12 @@ export interface MenuFormData {
 // ── 콘텐츠 편집 ──
 export interface ContentRegion {
   id: number;
+  menuId: number | null;
   regionKey: string;
+  title: string;
   displayName: string;
   bodyHtml: string;
+  updatedBy: number | null;
   updatedAt: string;
 }
 
