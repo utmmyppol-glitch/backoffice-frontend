@@ -67,6 +67,18 @@ export default function EducationManager() {
     }
   }
 
+  async function remove(id: number) {
+    if (!confirm("이 교육 신청을 삭제할까요? 되돌릴 수 없습니다.")) return;
+    try {
+      await apiFetch(`/api/admin/${site}/educations/${id}`, { method: "DELETE" });
+      toast("success", "삭제되었습니다");
+      if (selected?.id === id) setDetailOpen(false);
+      fetchData();
+    } catch (err) {
+      toast("error", err instanceof ApiError ? err.message : "삭제에 실패했습니다");
+    }
+  }
+
   function formatDate(s: string | undefined | null) {
     if (!s) return "-";
     try {
@@ -181,6 +193,10 @@ export default function EducationManager() {
                   className="text-sm border border-gray-300 rounded px-2 py-1">
                   {STATUS_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
+              )}
+              {editable && (
+                <button onClick={() => remove(selected.id)}
+                  className="ml-auto px-3 py-1 text-xs text-red-600 border border-red-200 rounded hover:bg-red-50">삭제</button>
               )}
             </div>
             <div className="text-xs text-gray-400">신청일: {formatDate(selected.createdAt)}</div>

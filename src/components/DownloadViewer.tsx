@@ -4,6 +4,8 @@ import { useEffect, useState, useCallback } from "react";
 import { apiFetch, ApiError } from "@/lib/api";
 import { Download, PaginatedResponse } from "@/lib/types";
 import { useToast } from "./Toast";
+import { canEdit } from "@/lib/permissions";
+import { getUser } from "@/lib/auth";
 
 interface DownloadViewerProps {
   site: "union" | "dataware";
@@ -11,6 +13,18 @@ interface DownloadViewerProps {
 
 export default function DownloadViewer({ site }: DownloadViewerProps) {
   const { toast } = useToast();
+  const editable = canEdit(getUser());
+  async function remove(id: number) {
+    if (!confirm("이 다운로드 이력을 삭제할까요? 되돌릴 수 없습니다.")) return;
+    try {
+      await apiFetch(`/api/admin/${site}/downloads/${id}`, { method: "DELETE" });
+      toast("success", "삭제되었습니다");
+      setSelected(null);
+      fetchData();
+    } catch (err) {
+      toast("error", err instanceof ApiError ? err.message : "삭제에 실패했습니다");
+    }
+  }
   const [data, setData] = useState<Download[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -136,7 +150,11 @@ export default function DownloadViewer({ site }: DownloadViewerProps) {
               <DetailRow label="개인정보 동의" value={selected.privacyAgreed ? "동의" : "미동의"} />
               <DetailRow label="다운로드 일시" value={formatDateTime(selected.createdAt)} />
             </div>
-            <div className="px-6 py-4 border-t border-gray-200 flex justify-end">
+            <div className="px-6 py-4 border-t border-gray-200 flex justify-between">
+              {editable ? (
+                <button onClick={() => remove(selected.id)}
+                  className="px-4 py-2 text-red-600 border border-red-200 text-sm rounded-lg hover:bg-red-50">삭제</button>
+              ) : <span />}
               <button onClick={() => setSelected(null)}
                 className="px-4 py-2 bg-gray-100 text-gray-700 text-sm rounded-lg hover:bg-gray-200">닫기</button>
             </div>

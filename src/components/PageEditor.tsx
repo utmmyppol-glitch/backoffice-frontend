@@ -39,7 +39,7 @@ const THEME = {
   },
 };
 
-const TEXTAREA_HINTS = new Set(["desc", "text", "quote", "hoursNote"]);
+const TEXTAREA_HINTS = new Set(["desc", "text", "quote", "hoursNote", "members"]);
 const LABEL_MAP: Record<string, string> = {
   title: "제목", accent: "강조 텍스트", desc: "설명", text: "본문",
   subtitle: "부제", quote: "인용문", ceo: "CEO", img: "이미지",
@@ -381,7 +381,7 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
     return manifest.find(f => f.id === fieldId)?.value ?? "";
   }, [sectionData, manifest]);
 
-  const updateField = useCallback((fieldId: string, newValue: string) => {
+  const updateField = useCallback((fieldId: string, newValue: unknown) => {
     const sectionKey = fieldId.split(".")[0];
     const fieldPath = fieldId.slice(sectionKey.length + 1);
 
@@ -390,7 +390,7 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
       if (!current) {
         current = buildSectionFromManifest(sectionKey, manifest);
       }
-      const updated = deepSet(current, fieldPath, newValue);
+      const updated = fieldPath ? deepSet(current, fieldPath, newValue as string) : newValue;
       setTimeout(() => {
         iframeRef.current?.contentWindow?.postMessage(
           { type: "content-update", section: sectionKey, data: updated }, "*"
@@ -399,7 +399,7 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
       return { ...prev, [sectionKey]: updated };
     });
 
-    setManifest(prev => prev.map(f => f.id === fieldId ? { ...f, value: newValue } : f));
+    setManifest(prev => prev.map(f => f.id === fieldId ? { ...f, value: newValue as string } : f));
     setDirty(prev => new Set(prev).add(sectionKey));
   }, [manifest]);
 
@@ -439,6 +439,7 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
     finally { setSaving(null); }
   }, [site, dirty, sectionData, toast]);
 
+
   /* ── Ctrl+S 전체 저장 ── */
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -471,66 +472,87 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
 
   /* ── 배열 섹션 항목 조작 ── */
   const arrayItemAction = useCallback((sectionKey: string, action: "add" | "delete" | "up" | "down", idx?: number) => {
-    // 스크롤 위치 보존
     const scrollTop = panelRef.current?.scrollTop;
 
-    setSectionData(prev => {
-      let arr = prev[sectionKey];
-      if (!Array.isArray(arr)) {
-        arr = buildSectionFromManifest(sectionKey, manifest);
-        if (!Array.isArray(arr)) return prev;
-      }
-      const clone = JSON.parse(JSON.stringify(arr)) as Record<string, string>[];
+    // 사이드이펙트를 setState 업데이터 밖에서 1회만 실행 (StrictMode 이중 실행로 인한 중복 add 방지)
+    let arr = sectionData[sectionKey];
+    if (!Array.isArray(arr)) {
+      arr = buildSectionFromManifest(sectionKey, manifest);
+      if (!Array.isArray(arr)) return;
+    }
+    const clone = JSON.parse(JSON.stringify(arr)) as Record<string, string>[];
 
-      if (action === "add") {
-        const template: Record<string, string> = {};
-        if (clone.length > 0) {
-          for (const key of Object.keys(clone[0])) template[key] = "";
+    if (action === "add") {
+      const template: Record<string, string> = {};
+      if (clone.length > 0) {
+        for (const key of Object.keys(clone[0])) template[key] = "";
+      }
+      clone.push(template);
+    } else if (action === "delete" && idx !== undefined) {
+      clone.splice(idx, 1);
+    } else if (action === "up" && idx !== undefined && idx > 0) {
+      [clone[idx - 1], clone[idx]] = [clone[idx], clone[idx - 1]];
+    } else if (action === "down" && idx !== undefined && idx < clone.length - 1) {
+      [clone[idx], clone[idx + 1]] = [clone[idx + 1], clone[idx]];
+    } else {
+      return;
+    }
+
+    // 항목 수 변경(추가/삭제)만 manifest 재구성
+    if (action === "add" || action === "delete") {
+      const newFields: ManifestField[] = [];
+      for (const f of manifest) {
+        if (!f.id.startsWith(sectionKey + ".")) { newFields.push(f); continue; }
+        const path = f.id.slice(sectionKey.length + 1);
+        if (!/^\d+\./.test(path)) { newFields.push(f); continue; }
+      }
+      clone.forEach((item, i) => {
+        for (const [k, v] of Object.entries(item)) {
+          newFields.push({ id: `${sectionKey}.${i}.${k}`, type: "text", value: typeof v === "object" && v !== null ? JSON.stringify(v) : String(v) });
         }
-        clone.push(template);
-      } else if (action === "delete" && idx !== undefined) {
-        clone.splice(idx, 1);
-      } else if (action === "up" && idx !== undefined && idx > 0) {
-        [clone[idx - 1], clone[idx]] = [clone[idx], clone[idx - 1]];
-      } else if (action === "down" && idx !== undefined && idx < clone.length - 1) {
-        [clone[idx], clone[idx + 1]] = [clone[idx + 1], clone[idx]];
-      } else {
-        return prev;
-      }
+      });
+      setManifest(newFields);
+    }
 
-      // 항목 수 변경(추가/삭제)만 manifest 재구성 — 순서변경은 sectionData로 충분
-      if (action === "add" || action === "delete") {
-        const newFields: ManifestField[] = [];
-        for (const f of manifest) {
-          if (!f.id.startsWith(sectionKey + ".")) { newFields.push(f); continue; }
-          const path = f.id.slice(sectionKey.length + 1);
-          if (!/^\d+\./.test(path)) { newFields.push(f); continue; }
-        }
-        clone.forEach((item, i) => {
-          for (const [k, v] of Object.entries(item)) {
-            newFields.push({ id: `${sectionKey}.${i}.${k}`, type: "text", value: typeof v === "object" && v !== null ? JSON.stringify(v) : String(v) });
-          }
-        });
-        setManifest(newFields);
-      }
+    setSectionData(prev => ({ ...prev, [sectionKey]: clone }));
+    iframeRef.current?.contentWindow?.postMessage(
+      { type: "content-update", section: sectionKey, data: clone }, "*"
+    );
+    setDirty(p => new Set(p).add(sectionKey));
 
-      setTimeout(() => {
-        iframeRef.current?.contentWindow?.postMessage(
-          { type: "content-update", section: sectionKey, data: clone }, "*"
-        );
-      }, 0);
-
-      setDirty(p => new Set(p).add(sectionKey));
-      return { ...prev, [sectionKey]: clone };
-    });
-
-    // React 리렌더 후 스크롤 위치 복원
     requestAnimationFrame(() => {
       if (panelRef.current && scrollTop !== undefined) {
         panelRef.current.scrollTop = scrollTop;
       }
     });
-  }, [manifest]);
+  }, [sectionData, manifest]);
+
+  /* 페이지(iframe)에서 온 배열 추가/삭제/순서 요청 처리 */
+  const lastArrayActionRef = useRef<{ sig: string; t: number }>({ sig: "", t: 0 });
+  useEffect(() => {
+    const h = (e: MessageEvent) => {
+      if (e.data?.type === "array-action" && typeof e.data.section === "string") {
+        // 동일 액션이 400ms 안에 중복 도착하면 무시(이중 add 방지)
+        const sig = `${e.data.section}:${e.data.action}:${e.data.idx ?? ""}`;
+        const now = Date.now();
+        if (lastArrayActionRef.current.sig === sig && now - lastArrayActionRef.current.t < 400) return;
+        lastArrayActionRef.current = { sig, t: now };
+        arrayItemAction(
+          e.data.section,
+          e.data.action,
+          typeof e.data.idx === "number" ? e.data.idx : undefined,
+        );
+      }
+      if (e.data?.type === "field-set" && typeof e.data.id === "string") {
+        updateField(e.data.id, e.data.value);
+      }
+      if (e.data?.type === "save-all") {
+        saveAll();
+      }
+    };
+    window.addEventListener("message", h);
+    return () => window.removeEventListener("message", h);
+  }, [arrayItemAction, updateField, saveAll]);
 
   const renderField = useCallback((field: ManifestField) => {
     const path = field.id.split(".").slice(1).join(".");
@@ -539,25 +561,27 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
     const isTextarea = TEXTAREA_HINTS.has(lastSegment);
 
     return (
-      <div key={field.id} data-field-id={field.id} className="mb-3"
+      <div key={field.id} data-field-id={field.id} className="flex items-start gap-2 mb-1.5"
         onMouseEnter={() => postToIframe({ type: "highlight-field", id: field.id })}
         onMouseLeave={() => postToIframe({ type: "clear-highlight", id: field.id })}
       >
         <label
-          className="block text-xs font-medium text-gray-500 mb-1 cursor-pointer hover:text-gray-800"
+          className="w-16 shrink-0 text-right text-xs font-medium text-gray-500 pt-1.5 leading-tight cursor-pointer hover:text-gray-800 break-keep"
           onClick={() => postToIframe({ type: "scroll-to-field", id: field.id })}
         >{fieldLabel(path)}</label>
-        {field.type === "image" ? (
-          <ImageUploadField value={value} onChange={url => updateField(field.id, url)} site={site} previewBaseUrl={previewBaseUrl} />
-        ) : isTextarea ? (
-          <RichEditor value={value} onChange={html => updateField(field.id, html)} site={site} />
-        ) : (
-          <textarea value={stripHtml(value)} onChange={e => updateField(field.id, e.target.value)}
-            rows={1}
-            onInput={e => { const el = e.currentTarget; el.style.height = "auto"; el.style.height = el.scrollHeight + "px"; }}
-            ref={el => { if (el) { el.style.height = "auto"; el.style.height = el.scrollHeight + "px"; } }}
-            className={`w-full border border-gray-300 rounded px-2.5 py-1.5 text-sm focus:ring-2 resize-none overflow-hidden ${t.focusRing}`} />
-        )}
+        <div className="flex-1 min-w-0">
+          {field.type === "image" ? (
+            <ImageUploadField value={value} onChange={url => updateField(field.id, url)} site={site} previewBaseUrl={previewBaseUrl} />
+          ) : isTextarea ? (
+            <RichEditor value={value} onChange={html => updateField(field.id, html)} site={site} />
+          ) : (
+            <textarea value={stripHtml(value)} onChange={e => updateField(field.id, e.target.value)}
+              rows={1}
+              onInput={e => { const el = e.currentTarget; el.style.height = "auto"; el.style.height = el.scrollHeight + "px"; }}
+              ref={el => { if (el) { el.style.height = "auto"; el.style.height = el.scrollHeight + "px"; } }}
+              className={`w-full border border-gray-300 rounded px-2.5 py-1.5 text-sm focus:ring-2 resize-none overflow-hidden ${t.focusRing}`} />
+          )}
+        </div>
       </div>
     );
   }, [site, t.focusRing, getFieldValue, updateField, postToIframe, previewBaseUrl]);
