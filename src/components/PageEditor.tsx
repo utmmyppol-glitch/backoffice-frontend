@@ -201,6 +201,7 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
   const pageUrlRef = useRef(presetPages[0].path);
 
   const t = THEME[site];
+  const iframeOrigin = (() => { try { return new URL(previewBaseUrl).origin; } catch { return previewBaseUrl; } })();
 
   /* ── 패널 접기/펼치기 + 드래그 리사이즈 ── */
   const [panelOpen, setPanelOpen] = useState(() => {
@@ -310,6 +311,7 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
 
   useEffect(() => {
     const handler = (e: MessageEvent) => {
+      if (e.origin !== iframeOrigin) return;
       if (e.data?.type === "editable-manifest") {
         const fields = (e.data.fields as ManifestField[]) ?? [];
         const newPath = e.data.path as string | undefined;
@@ -349,7 +351,7 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
     };
     window.addEventListener("message", handler);
     return () => window.removeEventListener("message", handler);
-  }, [loadSectionData, t.highlightColor]);
+  }, [loadSectionData, t.highlightColor, iframeOrigin]);
 
   /* iframe 로드 완료 시 manifest 재요청 (반복 폴링으로 타이밍 문제 방지) */
   const handleIframeLoad = useCallback(() => {
@@ -359,16 +361,16 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
       if (!iframeRef.current || attempts >= maxAttempts || loadedRef.current) return;
       attempts++;
       try {
-        iframeRef.current.contentWindow?.postMessage({ type: "request-manifest" }, "*");
+        iframeRef.current.contentWindow?.postMessage({ type: "request-manifest" }, iframeOrigin);
       } catch { /* cross-origin 접근 실패 무시 */ }
       setTimeout(poll, 500);
     };
     setTimeout(poll, 600);
-  }, []);
+  }, [iframeOrigin]);
 
   const postToIframe = useCallback((msg: Record<string, unknown>) => {
-    try { iframeRef.current?.contentWindow?.postMessage(msg, "*"); } catch { /* ignore */ }
-  }, []);
+    try { iframeRef.current?.contentWindow?.postMessage(msg, iframeOrigin); } catch { /* ignore */ }
+  }, [iframeOrigin]);
 
   const getFieldValue = useCallback((fieldId: string): string => {
     const sectionKey = fieldId.split(".")[0];
@@ -393,7 +395,7 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
       const updated = fieldPath ? deepSet(current, fieldPath, newValue as string) : newValue;
       setTimeout(() => {
         iframeRef.current?.contentWindow?.postMessage(
-          { type: "content-update", section: sectionKey, data: updated }, "*"
+          { type: "content-update", section: sectionKey, data: updated }, iframeOrigin
         );
       }, 0);
       return { ...prev, [sectionKey]: updated };
@@ -401,7 +403,7 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
 
     setManifest(prev => prev.map(f => f.id === fieldId ? { ...f, value: newValue as string } : f));
     setDirty(prev => new Set(prev).add(sectionKey));
-  }, [manifest]);
+  }, [manifest, iframeOrigin]);
 
   const saveSection = useCallback(async (sectionKey: string) => {
     const data = sectionData[sectionKey];
@@ -463,11 +465,11 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
   const handleHistoryRevert = useCallback((sectionKey: string, historyData: unknown) => {
     setSectionData(prev => ({ ...prev, [sectionKey]: historyData }));
     iframeRef.current?.contentWindow?.postMessage(
-      { type: "content-update", section: sectionKey, data: historyData }, "*"
+      { type: "content-update", section: sectionKey, data: historyData }, iframeOrigin
     );
     setDirty(prev => new Set(prev).add(sectionKey));
     toast("success", "이전 버전 불러옴 — 저장하면 적용됩니다.");
-  }, [toast]);
+  }, [toast, iframeOrigin]);
 
 
   /* ── 배열 섹션 항목 조작 ── */
@@ -516,7 +518,7 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
 
     setSectionData(prev => ({ ...prev, [sectionKey]: clone }));
     iframeRef.current?.contentWindow?.postMessage(
-      { type: "content-update", section: sectionKey, data: clone }, "*"
+      { type: "content-update", section: sectionKey, data: clone }, iframeOrigin
     );
     setDirty(p => new Set(p).add(sectionKey));
 
@@ -525,12 +527,13 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
         panelRef.current.scrollTop = scrollTop;
       }
     });
-  }, [sectionData, manifest]);
+  }, [sectionData, manifest, iframeOrigin]);
 
   /* 페이지(iframe)에서 온 배열 추가/삭제/순서 요청 처리 */
   const lastArrayActionRef = useRef<{ sig: string; t: number }>({ sig: "", t: 0 });
   useEffect(() => {
     const h = (e: MessageEvent) => {
+      if (e.origin !== iframeOrigin) return;
       if (e.data?.type === "array-action" && typeof e.data.section === "string") {
         // 동일 액션이 400ms 안에 중복 도착하면 무시(이중 add 방지)
         const sig = `${e.data.section}:${e.data.action}:${e.data.idx ?? ""}`;
@@ -552,7 +555,7 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
     };
     window.addEventListener("message", h);
     return () => window.removeEventListener("message", h);
-  }, [arrayItemAction, updateField, saveAll]);
+  }, [arrayItemAction, updateField, saveAll, iframeOrigin]);
 
   const renderField = useCallback((field: ManifestField) => {
     const path = field.id.split(".").slice(1).join(".");

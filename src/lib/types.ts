@@ -67,20 +67,6 @@ export interface Post {
   updatedAt: string;
 }
 
-// ── 배너 ──
-export type BannerPosition = "HERO" | "POPUP" | "PROMOTION";
-
-export interface Banner {
-  id: number;
-  title: string;
-  imageUrl: string;
-  linkUrl: string;
-  position: BannerPosition;
-  sortOrder: number;
-  isActive: boolean;
-  createdAt: string;
-}
-
 // ── 고객사 로고 ──
 export interface ClientLogo {
   id: number;

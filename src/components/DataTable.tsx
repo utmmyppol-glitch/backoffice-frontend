@@ -22,6 +22,10 @@ interface DataTableProps<T> {
   description?: string;
   onAdd?: () => void;
   addLabel?: string;
+  /** 검색 입력 placeholder (기본: "검색어 입력...") */
+  searchPlaceholder?: string;
+  /** 검색바 옆에 렌더할 추가 필터 (예: 상태 select) */
+  filterSlot?: React.ReactNode;
 }
 
 export default function DataTable<T>({
@@ -39,6 +43,8 @@ export default function DataTable<T>({
   description,
   onAdd,
   addLabel = "+ 추가",
+  searchPlaceholder = "검색어 입력...",
+  filterSlot,
 }: DataTableProps<T>) {
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
@@ -69,9 +75,10 @@ export default function DataTable<T>({
           value={searchValue}
           onChange={(e) => onSearchChange(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && onSearch()}
-          placeholder="검색어 입력..."
+          placeholder={searchPlaceholder}
           className="flex-1 max-w-sm border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         />
+        {filterSlot}
         <button
           onClick={onSearch}
           className="px-4 py-2 bg-gray-100 text-gray-700 text-sm rounded-lg hover:bg-gray-200 transition-colors"

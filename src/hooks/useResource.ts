@@ -14,6 +14,8 @@ interface UseResourceOptions {
   pageSize?: number;
   /** 토스트에 표시할 엔티티 이름 (예: "게시글", "배너") */
   entityName: string;
+  /** 추가 쿼리 파라미터 (예: { status: "NEW" }). 빈 문자열 값은 무시됨 */
+  extraParams?: Record<string, string>;
 }
 
 export default function useResource<T extends { id: number }>({
@@ -21,6 +23,7 @@ export default function useResource<T extends { id: number }>({
   site,
   pageSize = 15,
   entityName,
+  extraParams,
 }: UseResourceOptions) {
   const { toast } = useToast();
 
@@ -39,6 +42,7 @@ export default function useResource<T extends { id: number }>({
   const [deleteTarget, setDeleteTarget] = useState<T | null>(null);
 
   const basePath = `/api/admin/${site}/${endpoint}`;
+  const extraParamsKey = JSON.stringify(extraParams ?? {});
 
   const fetchList = useCallback(async () => {
     try {
@@ -48,6 +52,10 @@ export default function useResource<T extends { id: number }>({
         size: String(pageSize),
       });
       if (searchQuery) params.set("search", searchQuery);
+      const extra: Record<string, string> = JSON.parse(extraParamsKey);
+      for (const [k, v] of Object.entries(extra)) {
+        if (v) params.set(k, v);
+      }
       const res = await apiFetch<PaginatedResponse<T> | T[]>(`${basePath}?${params}`);
       if (Array.isArray(res)) {
         // 백엔드가 전체 배열을 반환하면 클라이언트에서 페이지네이션
@@ -66,7 +74,7 @@ export default function useResource<T extends { id: number }>({
     } finally {
       setLoading(false);
     }
-  }, [basePath, page, pageSize, searchQuery, entityName, toast]);
+  }, [basePath, page, pageSize, searchQuery, extraParamsKey, entityName, toast]);
 
   useEffect(() => {
     fetchList();

@@ -1,10 +1,13 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { apiFetch, ApiError } from "@/lib/api";
-import { Education, EducationStatus, PaginatedResponse } from "@/lib/types";
+import { useState } from "react";
+import { Education, EducationStatus } from "@/lib/types";
 import { canEdit } from "@/lib/permissions";
 import { getUser } from "@/lib/auth";
+import { apiFetch, ApiError } from "@/lib/api";
+import { formatDate } from "@/lib/format";
+import useResource from "@/hooks/useResource";
+import DataTable, { Column } from "./DataTable";
 import Modal from "./Modal";
 import StatusBadge from "./StatusBadge";
 import { useToast } from "./Toast";
@@ -19,48 +22,27 @@ const STATUS_OPTIONS: { value: EducationStatus; label: string }[] = [
 export default function EducationManager() {
   const site = "dataware";
   const { toast } = useToast();
-  const user = getUser();
-  const editable = canEdit(user);
+  const editable = canEdit(getUser());
 
-  const [data, setData] = useState<Education[]>([]);
-  const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
-  const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
-  const [loading, setLoading] = useState(true);
-
-  const [detailOpen, setDetailOpen] = useState(false);
   const [selected, setSelected] = useState<Education | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
 
-  const pageSize = 15;
-
-  const fetchData = useCallback(async () => {
-    try {
-      setLoading(true);
-      const params = new URLSearchParams({ page: String(page - 1), size: String(pageSize) });
-      if (searchQuery) params.set("search", searchQuery);
-      if (statusFilter) params.set("status", statusFilter);
-      const res = await apiFetch<PaginatedResponse<Education>>(
-        `/api/admin/${site}/educations?${params}`
-      );
-      if (Array.isArray(res)) { setData(res); setTotal(res.length); } else { setData(res.content); setTotal(res.totalElements); }
-    } catch (err) {
-      toast("error", err instanceof ApiError ? err.message : "교육 신청을 불러오지 못했습니다");
-    } finally {
-      setLoading(false);
-    }
-  }, [page, searchQuery, statusFilter, toast]);
-
-  useEffect(() => { fetchData(); }, [fetchData]);
+  const res = useResource<Education>({
+    endpoint: "educations",
+    site,
+    entityName: "교육 신청",
+    extraParams: statusFilter ? { status: statusFilter } : undefined,
+  });
 
   async function changeStatus(id: number, status: EducationStatus) {
     try {
       await apiFetch(`/api/admin/${site}/educations/${id}`, {
-        method: "PUT", body: JSON.stringify({ status }),
+        method: "PUT",
+        body: JSON.stringify({ status }),
       });
       toast("success", "상태가 변경되었습니다");
-      fetchData();
+      res.reload();
       if (selected?.id === id) setSelected({ ...selected, status });
     } catch (err) {
       toast("error", err instanceof ApiError ? err.message : "상태 변경에 실패했습니다");
@@ -73,97 +55,55 @@ export default function EducationManager() {
       await apiFetch(`/api/admin/${site}/educations/${id}`, { method: "DELETE" });
       toast("success", "삭제되었습니다");
       if (selected?.id === id) setDetailOpen(false);
-      fetchData();
+      res.reload();
     } catch (err) {
       toast("error", err instanceof ApiError ? err.message : "삭제에 실패했습니다");
     }
   }
 
-  function formatDate(s: string | undefined | null) {
-    if (!s) return "-";
-    try {
-      const d = new Date(s);
-      if (isNaN(d.getTime())) return "-";
-      return d.toLocaleDateString("ko-KR");
-    } catch { return "-"; }
+  function openDetail(item: Education) {
+    setSelected(item);
+    setDetailOpen(true);
   }
 
-  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const columns: Column<Education>[] = [
+    {
+      key: "name", label: "이름", width: "100px",
+      render: (item) => (
+        <button onClick={() => openDetail(item)} className="text-blue-600 hover:underline font-medium text-left">{item.name}</button>
+      ),
+    },
+    { key: "company", label: "회사", width: "120px", render: (item) => item.company || "-" },
+    { key: "courseName", label: "교육명", render: (item) => item.courseName },
+    { key: "preferredDate", label: "희망일", width: "100px", render: (item) => item.preferredDate || "-" },
+    { key: "participants", label: "인원", width: "60px", render: (item) => `${item.participants}명` },
+    { key: "status", label: "상태", width: "90px", render: (item) => <StatusBadge status={item.status} /> },
+    { key: "createdAt", label: "신청일", width: "100px", render: (item) => formatDate(item.createdAt) },
+    {
+      key: "actions", label: "", width: "60px",
+      render: (item) => (
+        <button onClick={() => openDetail(item)} className="px-2 py-1 text-xs text-gray-600 hover:bg-gray-100 rounded">상세</button>
+      ),
+    },
+  ];
+
+  const filterSlot = (
+    <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); res.setPage(1); }}
+      className="border border-gray-300 rounded-lg px-3 py-2 text-sm">
+      <option value="">전체 상태</option>
+      {STATUS_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+    </select>
+  );
 
   return (
-    <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">교육 신청 관리</h1>
-        <p className="text-sm text-gray-500 mt-1">교육 신청을 확인하고 처리합니다</p>
-      </div>
-
-      <div className="flex flex-wrap gap-2 mb-4">
-        <input type="text" value={search} onChange={(e) => setSearch(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter") { setPage(1); setSearchQuery(search); } }}
-          placeholder="이름, 회사, 교육명 검색..."
-          className="flex-1 max-w-sm border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
-        <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-          className="border border-gray-300 rounded-lg px-3 py-2 text-sm">
-          <option value="">전체 상태</option>
-          {STATUS_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-        </select>
-        <button onClick={() => { setPage(1); setSearchQuery(search); }}
-          className="px-4 py-2 bg-gray-100 text-gray-700 text-sm rounded-lg hover:bg-gray-200">검색</button>
-      </div>
-
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-        <table className="w-full">
-          <thead>
-            <tr className="bg-gray-50 border-b border-gray-200">
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase" style={{ width: "100px" }}>이름</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase" style={{ width: "120px" }}>회사</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">교육명</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase" style={{ width: "100px" }}>희망일</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase" style={{ width: "60px" }}>인원</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase" style={{ width: "90px" }}>상태</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase" style={{ width: "100px" }}>신청일</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase" style={{ width: "60px" }}></th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {loading ? (
-              <tr><td colSpan={8} className="px-4 py-12 text-center text-gray-400">불러오는 중...</td></tr>
-            ) : data.length === 0 ? (
-              <tr><td colSpan={8} className="px-4 py-12 text-center text-gray-400">교육 신청이 없습니다</td></tr>
-            ) : (
-              data.map((item) => (
-                <tr key={item.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 text-sm font-medium">
-                    <button onClick={() => { setSelected(item); setDetailOpen(true); }}
-                      className="text-blue-600 hover:underline text-left">{item.name}</button>
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-700">{item.company || "-"}</td>
-                  <td className="px-4 py-3 text-sm text-gray-700">{item.courseName}</td>
-                  <td className="px-4 py-3 text-sm text-gray-500">{item.preferredDate || "-"}</td>
-                  <td className="px-4 py-3 text-sm text-gray-700">{item.participants}명</td>
-                  <td className="px-4 py-3 text-sm"><StatusBadge status={item.status} /></td>
-                  <td className="px-4 py-3 text-sm text-gray-500">{formatDate(item.createdAt)}</td>
-                  <td className="px-4 py-3 text-sm">
-                    <button onClick={() => { setSelected(item); setDetailOpen(true); }}
-                      className="px-2 py-1 text-xs text-gray-600 hover:bg-gray-100 rounded">상세</button>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-        {total > 0 && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 bg-gray-50">
-            <span className="text-xs text-gray-500">전체 {total}건</span>
-            <div className="flex gap-1">
-              <button onClick={() => setPage(page - 1)} disabled={page <= 1}
-                className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-40">이전</button>
-              <button onClick={() => setPage(page + 1)} disabled={page >= totalPages}
-                className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-40">다음</button>
-            </div>
-          </div>
-        )}
-      </div>
+    <>
+      <DataTable
+        title="교육 신청 관리" description="교육 신청을 확인하고 처리합니다"
+        columns={columns} data={res.items} total={res.total} page={res.page} pageSize={res.pageSize}
+        onPageChange={res.setPage} searchValue={res.search} onSearchChange={res.setSearch}
+        onSearch={res.doSearch} loading={res.loading}
+        searchPlaceholder="이름, 회사, 교육명 검색..." filterSlot={filterSlot}
+      />
 
       <Modal open={detailOpen} onClose={() => setDetailOpen(false)} title="교육 신청 상세" width="max-w-2xl">
         {selected && (
@@ -203,6 +143,6 @@ export default function EducationManager() {
           </div>
         )}
       </Modal>
-    </div>
+    </>
   );
 }
