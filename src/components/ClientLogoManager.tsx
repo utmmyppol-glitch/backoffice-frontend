@@ -63,10 +63,10 @@ export default function ClientLogoManager({ site }: ClientLogoManagerProps) {
       key: "isActive", label: "노출", width: "80px",
       render: (item) => <ToggleSwitch checked={item.isActive} onChange={() => res.patch(item.id, { ...item, isActive: !item.isActive })} />,
     },
-    {
-      key: "showOnHome", label: "홈", width: "60px",
-      render: (item) => <ToggleSwitch checked={item.showOnHome ?? false} onChange={() => res.patch(item.id, { ...item, showOnHome: !(item.showOnHome ?? false) })} />,
-    },
+    ...(site === "dataware" ? [{
+      key: "showOnHome" as const, label: "홈", width: "60px",
+      render: (item: ClientLogo) => <ToggleSwitch checked={item.showOnHome ?? false} onChange={() => res.patch(item.id, { ...item, showOnHome: !(item.showOnHome ?? false) })} />,
+    }] : []),
     {
       key: "actions", label: "", width: "100px",
       render: (item) => (
@@ -107,10 +107,12 @@ export default function ClientLogoManager({ site }: ClientLogoManagerProps) {
             <span className="text-sm font-medium text-gray-700">노출 여부</span>
             <ToggleSwitch checked={form.isActive} onChange={(v) => setForm({ ...form, isActive: v })} />
           </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-gray-700">홈에 노출</span>
-            <ToggleSwitch checked={form.showOnHome} onChange={(v) => setForm({ ...form, showOnHome: v })} />
-          </div>
+          {site === "dataware" && (
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-gray-700">홈에 노출</span>
+              <ToggleSwitch checked={form.showOnHome} onChange={(v) => setForm({ ...form, showOnHome: v })} />
+            </div>
+          )}
           <div className="flex justify-end gap-2 pt-2">
             <button onClick={() => res.setModalOpen(false)} className="px-4 py-2 text-sm text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">취소</button>
             <button onClick={handleSave} disabled={res.saving} className="px-4 py-2 text-sm text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50">
