@@ -16,7 +16,6 @@ const unionMenu = [
   { label: "연혁 관리", href: "/union/history" },
   { label: "용어사전", href: "/union/glossary" },
   { label: "인사이트 관리", href: "/union/insights" },
-  { label: "다운로드 조회", href: "/union/downloads" },
   { label: "사이트 설정", href: "/union/site-config" },
 ];
 

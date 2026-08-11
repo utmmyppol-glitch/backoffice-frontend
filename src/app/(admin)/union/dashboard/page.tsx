@@ -15,7 +15,6 @@ interface DashboardData {
   totalInquiries: number;
   newInquiries: number;
   totalPosts: number;
-  totalDownloads: number;
   totalStories: number;
   recentInquiries: { id: number; name: string; company: string; message: string; status: string; createdAt: string }[];
   recentPosts: { id: number; title: string; category: string; createdAt: string }[];
@@ -23,7 +22,7 @@ interface DashboardData {
 
 const INITIAL: DashboardData = {
   totalInquiries: 0, newInquiries: 0, totalPosts: 0,
-  totalDownloads: 0, totalStories: 0,
+  totalStories: 0,
   recentInquiries: [], recentPosts: [],
 };
 
@@ -46,16 +45,14 @@ export default function UnionDashboard() {
           return fallback;
         });
 
-      const [inquiriesRaw, postsRaw, downloadsRaw, storiesRaw] = await Promise.all([
+      const [inquiriesRaw, postsRaw, storiesRaw] = await Promise.all([
         safeFetch<Paged<InqItem> | InqItem[]>("/api/admin/union/inquiries?page=0&size=5&sort=createdAt,desc", [] as InqItem[]),
         safeFetch<Paged<PostItem> | PostItem[]>("/api/admin/union/posts?page=0&size=5&sort=createdAt,desc", [] as PostItem[]),
-        safeFetch<Paged<unknown> | unknown[]>("/api/admin/union/downloads?page=0&size=1", []),
         safeFetch<Paged<unknown> | unknown[]>("/api/admin/union/customer-stories?page=0&size=1", []),
       ]);
 
       const inquiries = normalize(inquiriesRaw);
       const posts = normalize(postsRaw);
-      const downloads = normalize(downloadsRaw);
       const stories = normalize(storiesRaw);
 
       const newCount = inquiries.content.filter(i => i.status === "NEW").length;
@@ -72,7 +69,6 @@ export default function UnionDashboard() {
         totalInquiries: inquiries.totalElements,
         newInquiries: totalNew,
         totalPosts: posts.totalElements,
-        totalDownloads: downloads.totalElements,
         totalStories: stories.totalElements,
         recentInquiries: inquiries.content.slice(0, 5),
         recentPosts: posts.content.slice(0, 5),
@@ -113,7 +109,6 @@ export default function UnionDashboard() {
     { label: "총 문의", value: data.totalInquiries, icon: "📩", color: "bg-red-50 border-red-200 text-red-700" },
     { label: "미처리 문의 (NEW)", value: data.newInquiries, icon: "🔔", color: "bg-orange-50 border-orange-200 text-orange-700" },
     { label: "게시글 수", value: data.totalPosts, icon: "📝", color: "bg-red-50 border-red-200 text-red-700" },
-    { label: "다운로드 수", value: data.totalDownloads, icon: "📥", color: "bg-red-50 border-red-200 text-red-700" },
     { label: "고객 사례", value: data.totalStories, icon: "🏢", color: "bg-red-50 border-red-200 text-red-700" },
   ];
 
