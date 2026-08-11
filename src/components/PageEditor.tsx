@@ -408,6 +408,7 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
   const saveSection = useCallback(async (sectionKey: string) => {
     const data = sectionData[sectionKey];
     if (!data) return;
+    const scrollTop = panelRef.current?.scrollTop;
     setSaving(sectionKey);
     try {
       const res = await apiFetch<ContentResponse>(`/api/admin/${site}/contents`, {
@@ -418,12 +419,18 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
       setDirty(prev => { const n = new Set(prev); n.delete(sectionKey); return n; });
       toast("success", `${formatSectionKey(sectionKey)} 저장됨`);
     } catch { toast("error", "저장 실패"); }
-    finally { setSaving(null); }
+    finally {
+      setSaving(null);
+      requestAnimationFrame(() => {
+        if (panelRef.current && scrollTop !== undefined) panelRef.current.scrollTop = scrollTop;
+      });
+    }
   }, [site, sectionData, toast]);
 
   const saveAll = useCallback(async () => {
     const dirtyKeys = Array.from(dirty);
     if (dirtyKeys.length === 0) { toast("success", "변경사항이 없습니다"); return; }
+    const scrollTop = panelRef.current?.scrollTop;
     setSaving("all");
     try {
       for (const key of dirtyKeys) {
@@ -438,7 +445,12 @@ export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEd
       setDirty(new Set());
       toast("success", "모든 변경사항 저장됨");
     } catch { toast("error", "저장 중 오류 발생"); }
-    finally { setSaving(null); }
+    finally {
+      setSaving(null);
+      requestAnimationFrame(() => {
+        if (panelRef.current && scrollTop !== undefined) panelRef.current.scrollTop = scrollTop;
+      });
+    }
   }, [site, dirty, sectionData, toast]);
 
 
