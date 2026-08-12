@@ -22,6 +22,12 @@ const STATUS_OPTIONS: { value: InquiryStatus; label: string }[] = [
   { value: "COMPLETED", label: "완료" },
 ];
 
+/** 과거 데이터의 가짜 이메일(연락처만 입력 시 생성되던 {phone}@no-email.local)은 이메일 없음으로 표시 */
+function displayEmail(email?: string | null): string {
+  if (!email || email.endsWith("@no-email.local")) return "-";
+  return email;
+}
+
 export default function InquiryManager({ site }: InquiryManagerProps) {
   const { toast } = useToast();
   const editable = canEdit(getUser());
@@ -80,7 +86,7 @@ export default function InquiryManager({ site }: InquiryManagerProps) {
       ),
     },
     { key: "company", label: "회사", width: "120px", render: (item) => item.company || "-" },
-    { key: "email", label: "이메일", width: "160px", render: (item) => item.email || "-" },
+    { key: "email", label: "이메일", width: "160px", render: (item) => displayEmail(item.email) },
     { key: "phone", label: "연락처", width: "120px", render: (item) => item.phone || "-" },
     { key: "product", label: "관심 제품", width: "130px", render: (item) => item.product || "-" },
     { key: "status", label: "상태", width: "100px", render: (item) => <StatusBadge status={item.status} /> },
@@ -121,7 +127,7 @@ export default function InquiryManager({ site }: InquiryManagerProps) {
             <div className="grid grid-cols-2 gap-4">
               <div><span className="text-xs text-gray-500">이름</span><p className="text-sm font-medium">{selected.name}</p></div>
               <div><span className="text-xs text-gray-500">회사</span><p className="text-sm font-medium">{selected.company || "-"}</p></div>
-              <div><span className="text-xs text-gray-500">이메일</span><p className="text-sm">{selected.email || "-"}</p></div>
+              <div><span className="text-xs text-gray-500">이메일</span><p className="text-sm">{displayEmail(selected.email)}</p></div>
               <div><span className="text-xs text-gray-500">연락처</span><p className="text-sm">{selected.phone || "-"}</p></div>
               <div><span className="text-xs text-gray-500">관심 제품</span><p className="text-sm">{selected.product || "-"}</p></div>
               <div><span className="text-xs text-gray-500">개인정보 동의</span><p className="text-sm">{selected.consentPrivacy ? "동의함" : "미동의"}</p></div>
