@@ -193,12 +193,27 @@ function HistoryModal({ site, contentId, onRevert, onClose }: {
    ══════════════════════════════════════════════════ */
 const PANEL_KEY = "page-editor-panel";
 
-export default function PageEditor({ site, presetPages, previewBaseUrl }: PageEditorProps) {
+export default function PageEditor({ site, presetPages, previewBaseUrl: rawPreviewBaseUrl }: PageEditorProps) {
   const { toast } = useToast();
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const loadedRef = useRef(false);
   const pageUrlRef = useRef(presetPages[0].path);
+
+  // 배포서버 대응: previewBaseUrl이 localhost인데 백오피스가 다른 호스트로 떠 있으면,
+  // 미리보기를 "현재 호스트 + 원래 포트"로 자동 치환(공용→로컬 네트워크 차단 방지).
+  const [previewBaseUrl, setPreviewBaseUrl] = useState(rawPreviewBaseUrl);
+  useEffect(() => {
+    const isLocal = (h: string) => h === "localhost" || h === "127.0.0.1";
+    try {
+      const u = new URL(rawPreviewBaseUrl);
+      if (typeof window !== "undefined" && isLocal(u.hostname) && !isLocal(window.location.hostname)) {
+        setPreviewBaseUrl(`${window.location.protocol}//${window.location.hostname}:${u.port}`);
+        return;
+      }
+    } catch { /* noop */ }
+    setPreviewBaseUrl(rawPreviewBaseUrl);
+  }, [rawPreviewBaseUrl]);
 
   const t = THEME[site];
   const iframeOrigin = (() => { try { return new URL(previewBaseUrl).origin; } catch { return previewBaseUrl; } })();
