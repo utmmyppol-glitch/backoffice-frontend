@@ -1,4 +1,8 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  (typeof window !== "undefined" && window.location.hostname !== "localhost"
+    ? `${window.location.protocol}//${window.location.hostname}:8081`
+    : "http://localhost:8081");
 
 export async function apiFetch<T>(
   path: string,
